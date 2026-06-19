@@ -133,6 +133,24 @@ table.maitri-matrix tbody th{color:var(--c-ink);text-align:right}
 .maitri-matrix .m-s{background:#fff}
 .maitri-matrix .m-sh{background:#f3c7a9}
 .maitri-matrix .m-ash{background:#c0222e;color:#fff;font-weight:700}
+.chart-toggle{display:flex;gap:6px;justify-content:center;margin:0 0 10px}
+.chart-toggle button{min-height:38px;padding:7px 18px;font-family:var(--font-body);font-weight:700;font-size:var(--fs-small);text-transform:uppercase;letter-spacing:.03em;color:var(--c-red);background:transparent;border:2px solid var(--c-red);border-radius:var(--radius-sm);cursor:pointer}
+.chart-toggle button.active{color:#fff;background:var(--c-orange);border-color:var(--c-orange)}
+.print-row{text-align:center;margin:0 0 22px}
+
+/* ── Печать / сохранение в PDF ── */
+@media print {
+  #formSection, .engine-badge, .tabs, .print-row, .chart-toggle, .alpha-row, .geo-status { display:none !important; }
+  .astro-btn, .yantra-download, .nadi-expand-btn { display:none !important; }
+  .nadi-desc-body { display:block !important; }
+  details.upaya > .db { display:block !important; }
+  details.upaya summary { list-style:none; }
+  .astro-app { --app-top-offset:6px; max-width:100%; padding:6px 10px; }
+  .astro-header { break-inside:avoid; }
+  .nadi-block, .astro-card, .analysis-card, .result-card, .nadi-item, .island-box, details.upaya, table { break-inside:avoid; }
+  a[href]:after { content:""; }
+  body { background:#fff; }
+}
 </style>
 </head>
 
@@ -147,7 +165,7 @@ table.maitri-matrix tbody th{color:var(--c-ink);text-align:right}
   <div id="engineBadge" class="engine-badge loading">Загрузка швейцарских эфемерид…</div>
 
   <!-- ОБЩАЯ ФОРМА ДАННЫХ РОЖДЕНИЯ (на все три инструмента) -->
-  <section class="astro-section">
+  <section class="astro-section" id="formSection">
     <h2 class="astro-h2">Данные рождения</h2>
     <div class="astro-card">
       <div class="field-row">
@@ -195,6 +213,10 @@ table.maitri-matrix tbody th{color:var(--c-ink);text-align:right}
     <button class="tab"        data-tab="naksh"  onclick="switchTab('naksh')">Имя по накшатре</button>
     <button class="tab"        data-tab="yantra" onclick="switchTab('yantra')">Навграха-янтра</button>
   </nav>
+
+  <div class="print-row">
+    <button class="astro-btn astro-btn--ghost print-btn" onclick="window.print()">Скачать PDF (печать)</button>
+  </div>
 
   <!-- Панель: Нади-карта -->
   <section class="astro-section tab-panel" id="panel-nadi">
@@ -715,6 +737,30 @@ const NADI_DESC = {
     positive:'Глубокая духовность, мокша-карака. Мудрость прошлых жизней. Успех в духовных практиках и целительстве.',
     negative:'Отчуждённость от материального. Трудности с детьми.',
     upaya:'Молитва Ганеше. Пост в четверг.'},
+  'Ra_Ma': {name:'Раху — Марс',
+    positive:'Огромная пробивная сила и смелость в нестандартных делах — техника, хирургия, спорт, силовые структуры. Действует там, где другие отступают.',
+    negative:'«Кровь и искры». Вспыльчивость, риск травм, ожогов и аварий, импульсивные решения под чужим влиянием, скрытая агрессия.',
+    upaya:'Хануман-Чалиса по вторникам. Сдержанность за рулём и с огнём. Жертвование красной чечевицы.'},
+  'Ra_Me': {name:'Раху — Меркурий',
+    positive:'Изобретательный нестандартный ум; дар к технологиям, кодам, иностранным языкам, торговле и медиа. Хорошо для IT и аналитики.',
+    negative:'Хитрость, неустойчивые нервы, обман в сделках, информационная зависимость, беспокойный ум, путаница в документах.',
+    upaya:'Мантра Будхи по средам. Благотворительность книгами. Меньше пустого инфопотока, практика тишины.'},
+  'Ra_Ju': {name:'Раху — Юпитер (Гуру-Чандала)',
+    positive:'Нетрадиционная мудрость, тяга к редким и тайным знаниям, успех за рубежом и на стыке культур. При сильном Юпитере — реформатор и учитель нового.',
+    negative:'Гуру-Чандала-йога: сомнения в наставниках и вере, смешение ценностей, гордыня ума, споры с учителями или законом.',
+    upaya:'Почитание Гуру и старших. Изучение священных текстов, четверговый пост. Жёлтый сапфир — только после проверки у астролога.'},
+  'Ke_Ma': {name:'Кету — Марс',
+    positive:'Острый точечный ум и мастерство в технических и оккультных дисциплинах; интуитивная отвага, склонность к хирургии, инженерии, тантре.',
+    negative:'Резкие вспышки гнева, скрытые враги, риск порезов и ожогов, импульсивные разрывы. Энергия идёт рывками.',
+    upaya:'Поклонение Ганеше и Сканде (Муругану). Контроль гнева, дыхательные практики. Вторничный пост.'},
+  'Ke_Me': {name:'Кету — Меркурий',
+    positive:'Интуитивный интеллект, дар к символам, мантрам, программированию, астрологии и языку тела. Понимание «между строк».',
+    negative:'Рассеянность, нервозность речи, трудности с расчётами и бумагами, склонность к самообману и слухам.',
+    upaya:'Мантра Ганеше; зелёный камень для Меркурия — после проверки. Записывать мысли, проверять факты.'},
+  'Ke_Sa': {name:'Кету — Сатурн',
+    positive:'Сильная отрешённость и дисциплина духа, склонность к аскезе, йоге, уединённому труду и исследованию. Зрелость через ограничения.',
+    negative:'Хроническая неудовлетворённость, изоляция, задержки, мрачность, кармические долги, чувство «отрезанности».',
+    upaya:'Служение старым и больным, кормление животных. Шани- и Кету-стотры по субботам. Простой образ жизни.'},
 };
 function getNadiDesc(planet, lord){
   const key1=planet+'_'+lord, key2=lord+'_'+planet;
@@ -1001,19 +1047,164 @@ function maitriBlock(positions){
   </div>`;
 }
 
+/* ── Главные йоги ── */
+function yogasBlock(positions, lagSign){
+  const sgn={}; for(const p of ['Su','Mo','Ma','Me','Ju','Ve','Sa','Ra','Ke']) sgn[p]=Math.floor(positions[p].lon/30);
+  const house=p=>((sgn[p]-lagSign+12)%12)+1;
+  const same=(a,b)=>sgn[a]===sgn[b];
+  const found=[];
+  // Панча-Махапуруша (Ma,Me,Ju,Ve,Sa в своём/экзальтации и в кендре)
+  for(const [p,name] of [['Ma','Ручака'],['Me','Бхадра'],['Ju','Хамса'],['Ve','Малавья'],['Sa','Шаша']]){
+    const s=sgn[p], own=(OWN_SIGNS[p]||[]).includes(s), ex=EXALT[p]===s;
+    if((own||ex)&&[1,4,7,10].includes(house(p)))
+      found.push({n:name+'-йога (Махапуруша)',d:P_NAMES[p]+' в '+(ex?'экзальтации':'своём знаке')+' и в кендре — благородная, сильная личность с яркими качествами планеты.'});
+  }
+  // Гаджакешари
+  if([1,4,7,10].includes(((sgn['Ju']-sgn['Mo']+12)%12)+1))
+    found.push({n:'Гаджакешари-йога',d:'Юпитер в кендре от Луны — мудрость, уважение, устойчивое благополучие.'});
+  // Будха-Адитья
+  if(same('Su','Me')) found.push({n:'Будха-Адитья-йога',d:'Солнце и Меркурий вместе — интеллект, образование, ясная речь (если Меркурий не слишком сожжён).'});
+  // Чандра-Мангала
+  if(same('Mo','Ma')) found.push({n:'Чандра-Мангала-йога',d:'Луна и Марс вместе — деловая хватка, умение зарабатывать, энергия.'});
+  // Сунапха/Анапха/Дурудхара (от Луны, без Солнца и узлов)
+  const ben=['Ma','Me','Ju','Ve','Sa'];
+  const in2=ben.some(p=>sgn[p]===(sgn['Mo']+1)%12), in12=ben.some(p=>sgn[p]===(sgn['Mo']+11)%12), conj=ben.some(p=>sgn[p]===sgn['Mo']);
+  if(in2&&in12) found.push({n:'Дурудхара-йога',d:'Планеты во 2-м и 12-м от Луны — поддержка, достаток, помощники.'});
+  else if(in2) found.push({n:'Сунапха-йога',d:'Планета во 2-м от Луны — благосостояние своими силами.'});
+  else if(in12) found.push({n:'Анапха-йога',d:'Планета в 12-м от Луны — щедрость, духовность, доброе имя.'});
+  if(!in2&&!in12&&!conj) found.push({n:'Кемадрума-йога',d:'Луна без поддержки соседних домов — внутреннее одиночество и перепады; смягчается сильной Луной и духовной практикой.'});
+  // Нича-Бханга Раджа-йога
+  for(const p of ['Su','Mo','Ma','Me','Ju','Ve','Sa']) if(DEBIL[p]===sgn[p]){
+    const disp=SIGN_LORDS[sgn[p]];
+    if([1,4,7,10].includes(house(disp))||(OWN_SIGNS[disp]||[]).includes(sgn[disp])||EXALT[disp]===sgn[disp])
+      found.push({n:'Нича-Бханга Раджа-йога ('+P_NAMES[p]+')',d:'Падение отменено — слабость оборачивается силой, рост идёт через преодоление.'});
+  }
+  // Раджа-йога: соединение владыки кендры и владыки тригоны
+  const kL=new Set([1,4,7,10].map(h=>SIGN_LORDS[(lagSign+h-1)%12]));
+  const tL=new Set([1,5,9].map(h=>SIGN_LORDS[(lagSign+h-1)%12]));
+  const g7=['Su','Mo','Ma','Me','Ju','Ve','Sa']; let rajaDone=false;
+  for(let i=0;i<g7.length&&!rajaDone;i++)for(let j=i+1;j<g7.length;j++){
+    const a=g7[i],b=g7[j];
+    if(sgn[a]===sgn[b] && ((kL.has(a)&&tL.has(b))||(tL.has(a)&&kL.has(b)))){
+      found.push({n:'Раджа-йога',d:'Соединение управителей кендры и тригоны ('+P_NAMES[a]+' + '+P_NAMES[b]+') — подъём статуса, влияние, успех.'}); rajaDone=true; break;
+    }
+  }
+  const body=found.length
+    ? found.map(y=>`<div style="margin-bottom:8px"><strong style="color:var(--c-orange)">${y.n}.</strong> ${y.d}</div>`).join('')
+    : '<p class="muted">Явных классических йог из проверяемого набора не выявлено.</p>';
+  return `<div class="nadi-block"><h3>Главные йоги</h3>${body}</div>`;
+}
+
+/* ── Прошлая жизнь (5-й дом + ось Раху/Кету) ── */
+const KETU_SIGN_PAST=[
+  'воин и первопроходец — жизнь действия, борьбы и личной отваги',
+  'хранитель достатка и красоты — земля, ремесло, накопление',
+  'вестник и торговец — много связей, слов, обмена знанием',
+  'хранитель дома и рода — глубокая семейная и эмоциональная карма',
+  'правитель и творец — власть, признание, гордость, сцена',
+  'служитель и целитель — труд, чистота, внимание к деталям',
+  'дипломат и художник — отношения, договоры, гармония',
+  'исследователь тайн и тантрик — кризисы, трансформация, оккультное',
+  'учитель и странник — вера, философия, дальние пути',
+  'управленец и аскет долга — структура, ответственность, власть через труд',
+  'отшельник-реформатор — идеи, сообщества, нестандартный путь',
+  'мистик и отшельник — растворение, сострадание, духовные практики'
+];
+const HOUSE_AREA=['личность и тело','семья, речь, накопления','смелость, усилия, братья и сёстры','дом, мать, корни, покой','дети, творчество, познание','служение, здоровье, преодоление','партнёрство и союзы','глубинные перемены, тайное, наследство','дхарма, удача, учителя, дальние страны','дело, статус, призвание','обретения, цели, круг общения','уединение, освобождение, заграница'];
+function pastLifeBlock(positions, lagSign){
+  const sgn=p=>Math.floor(positions[p].lon/30);
+  const house=p=>((sgn(p)-lagSign+12)%12)+1;
+  const keS=sgn('Ke'), keH=house('Ke'), raH=house('Ra');
+  const lord5=SIGN_LORDS[(lagSign+4)%12], lord5H=((sgn(lord5)-lagSign+12)%12)+1;
+  const occ5=['Su','Mo','Ma','Me','Ju','Ve','Sa','Ra','Ke'].filter(p=>house(p)===5).map(p=>P_NAMES[p]);
+  return `<div class="nadi-block"><h3>Возможная прошлая жизнь</h3>
+    <p><strong>Кету</strong> (багаж прошлого) — ${SIGN_NAMES[keS]}, ${keH}-й дом: ${KETU_SIGN_PAST[keS]}. Зрелый, уже пройденный опыт связан с темой «${HOUSE_AREA[keH-1]}» — здесь душа приходит умелой, но склонна повторять старое.</p>
+    <p><strong>Раху</strong> (задача этой жизни) — ${raH}-й дом: рост и новый опыт через тему «${HOUSE_AREA[raH-1]}». Непривычное душе направление, но нужное сейчас.</p>
+    <p><strong>5-й дом</strong> (пурва-пунья, заслуги прошлого): владыка — ${P_NAMES[lord5]} в ${lord5H}-м доме${occ5.length?'; в самом 5-м доме — '+occ5.join(', '):'; планет в 5-м доме нет'}. Через эту область проявляются накопленные заслуги и природные дары.</p>
+    <p class="muted">Толкование образно-просветительское, не предсказание.</p>
+  </div>`;
+}
+
+/* ── Баланс стихий/качеств, накшатра Луны, сводка ── */
+const NAK_GANA=['Дэва','Манушья','Ракшаса','Манушья','Дэва','Манушья','Дэва','Дэва','Ракшаса','Ракшаса','Манушья','Манушья','Дэва','Ракшаса','Дэва','Ракшаса','Дэва','Ракшаса','Ракшаса','Манушья','Манушья','Дэва','Ракшаса','Ракшаса','Манушья','Манушья','Дэва'];
+const NAK_YONI=['Лошадь','Слон','Овца','Змея','Змея','Собака','Кошка','Овца','Кошка','Крыса','Крыса','Корова','Буйвол','Тигр','Буйвол','Тигр','Олень','Олень','Собака','Обезьяна','Мангуст','Обезьяна','Лев','Лошадь','Лев','Корова','Слон'];
+function extrasBlock(chart, positions, lagSign){
+  const STD={Su:'Sun',Mo:'Moon',Ma:'Mars',Me:'Mercury',Ju:'Jupiter',Ve:'Venus',Sa:'Saturn'};
+  const elemName={F:'Огонь',E:'Земля',A:'Воздух',W:'Вода'};
+  const elem={F:0,E:0,A:0,W:0}, qual={chara:0,sthira:0,dvi:0};
+  for(const p of ['Su','Mo','Ma','Me','Ju','Ve','Sa','La']){
+    const s=Math.floor(positions[p].lon/30); elem[SIGN_ELEM[s]]++; const m=s%3; qual[m===0?'chara':m===1?'sthira':'dvi']++;
+  }
+  const elemStr=Object.keys(elem).map(k=>elemName[k]+': '+elem[k]).join(' · ');
+  const moon=nd(chart.pos.Moon), ni=Math.floor(moon/(360/27)), moonSign=Math.floor(moon/30);
+  const varna=['Кшатрий','Вайшья','Шудра','Брахман','Кшатрий','Вайшья','Шудра','Брахман','Кшатрий','Вайшья','Шудра','Брахман'][moonSign];
+  const strong=[],weak=[];
+  for(const p of ['Su','Mo','Ma','Me','Ju','Ve','Sa']){ const q=nadiQuality(p,Math.floor(positions[p].lon/30)); if(q==='exalt'||q==='own') strong.push(P_NAMES[p]); if(q==='debil'||q==='enemy') weak.push(P_NAMES[p]); }
+  const retro=['Me','Ve','Ma','Ju','Sa'].filter(p=>chart.spd[STD[p]]<0).map(p=>P_NAMES[p]);
+  const sun=positions['Su'].lon, ORB={Mo:12,Ma:17,Me:14,Ju:11,Ve:10,Sa:15};
+  const combust=Object.keys(ORB).filter(p=>{let dd=Math.abs(positions[p].lon-sun);if(dd>180)dd=360-dd;return dd<ORB[p];}).map(p=>P_NAMES[p]);
+  return `<div class="nadi-block"><h3>Баланс и сводка</h3>
+    <p><strong>Стихии:</strong> ${elemStr}.</p>
+    <p><strong>Качества знаков:</strong> подвижные ${qual.chara} · фиксированные ${qual.sthira} · двойственные ${qual.dvi}.</p>
+    <p><strong>Накшатра Луны:</strong> ${NAKSHATRAS[ni].name} — гана ${NAK_GANA[ni]}, йони ${NAK_YONI[ni]}, варна (по знаку Луны) ${varna}.</p>
+    <p><strong>Сильные планеты:</strong> ${strong.length?strong.join(', '):'—'}. <strong>Слабые:</strong> ${weak.length?weak.join(', '):'—'}.</p>
+    <p><strong>Ретроградные:</strong> ${retro.length?retro.join(', '):'нет'}. <strong>Сожжённые (близко к Солнцу):</strong> ${combust.length?combust.join(', '):'нет'}.</p>
+  </div>`;
+}
+
+/* ── Северо-индийская (ромбовидная) карта: дома фиксированы, Лагна в 1-м ── */
+function renderSvgNorth(positions, lagnaSign){
+  const S=400, svg=[];
+  svg.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${S}" height="${S}" viewBox="0 0 ${S} ${S}" style="display:block">`);
+  svg.push(`<rect width="${S}" height="${S}" fill="#faf4ea"/>`);
+  const st='stroke="#ef5024" stroke-opacity="0.55" stroke-width="1.5" fill="none"';
+  svg.push(`<rect x="2" y="2" width="${S-4}" height="${S-4}" ${st}/>`);
+  svg.push(`<path d="M2,2 L${S-2},${S-2} M${S-2},2 L2,${S-2}" ${st}/>`);
+  svg.push(`<path d="M${S/2},2 L${S-2},${S/2} L${S/2},${S-2} L2,${S/2} Z" ${st}/>`);
+  const C={1:[200,108],2:[100,42],3:[42,100],4:[108,200],5:[42,300],6:[100,358],7:[200,292],8:[300,358],9:[358,300],10:[292,200],11:[358,100],12:[300,42]};
+  const planets=['Su','Mo','Ma','Me','Ju','Ve','Sa','Ra','Ke'];
+  const byHouse={};
+  for(const p of planets){ const s=Math.floor(positions[p].lon/30); const h=((s-lagnaSign+12)%12)+1; (byHouse[h]=byHouse[h]||[]).push(p); }
+  for(let h=1;h<=12;h++){
+    const sign=(lagnaSign+h-1)%12, [cx,cy]=C[h];
+    svg.push(`<text x="${cx}" y="${cy-22}" font-size="9" font-family="serif" fill="#6b625c" text-anchor="middle">${sign+1}${h===1?' · Ла':''}</text>`);
+    const ps=byHouse[h]||[];
+    let y=cy+4-(ps.length-1)*7;
+    for(const p of ps){
+      const lon=positions[p].lon, dg=Math.floor(lon%30);
+      svg.push(`<text x="${cx}" y="${y}" font-size="12" font-family="serif" fill="${P_COLOR[p]}" text-anchor="middle" font-weight="bold">${P_GLYPH[p]}<tspan font-size="8" font-weight="normal"> ${dg}°</tspan></text>`);
+      y+=15;
+    }
+  }
+  svg.push('</svg>');
+  return svg.join('\n');
+}
+
+let nadiChartStyle='south';
+function setChartStyle(s){ nadiChartStyle=s; if(CHART) renderNadi(CHART); }
+
 function renderNadi(chart){
   const positions=nadiPositions(chart);
   const lagnaSign=Math.floor(positions.La.lon/30);
   const nadiLines=buildNadiLines(positions);
-  const svgHtml=renderSvg(positions,nadiLines,lagnaSign);
+  const chartSvg = nadiChartStyle==='north'
+    ? renderSvgNorth(positions,lagnaSign)
+    : renderSvg(positions,nadiLines,lagnaSign);
   const f=chart.input;
   const dateStr=`${String(f.d).padStart(2,'0')}.${String(f.mo).padStart(2,'0')}.${f.y}`;
   const city=document.getElementById('bplace').value.trim();
   document.getElementById('out-nadi').innerHTML=
-    `<div class="nadi-chart-wrap">${svgHtml}</div>`
+    `<div class="chart-toggle">
+       <button class="${nadiChartStyle==='south'?'active':''}" onclick="setChartStyle('south')">Южная</button>
+       <button class="${nadiChartStyle==='north'?'active':''}" onclick="setChartStyle('north')">Северная</button>
+     </div>
+     <div class="nadi-chart-wrap">${chartSvg}</div>`
     +renderAnalysis(positions,nadiLines,lagnaSign,dateStr,city)
+    +yogasBlock(positions,lagnaSign)
     +dashaBlock(chart)
-    +maitriBlock(positions);
+    +maitriBlock(positions)
+    +extrasBlock(chart,positions,lagnaSign)
+    +pastLifeBlock(positions,lagnaSign);
 }
 
 /* ════════════════════════════════════════════════════════════════════
