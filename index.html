@@ -1,393 +1,580 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Джйотиш Нади — Натальная карта</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Джйотиш · расчёты по рождению — Светлана Кройцер</title>
+
+<!-- Единый стиль goroskop1008 (шрифт Jaipur + компоненты .astro-*) -->
+<link rel="stylesheet" href="./astro-app.css">
+
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap');
-:root{
-  --tc:#C1440E;--tcd:#8B2E08;--tcl:#D4622A;
-  --be:#F5ECD7;--bed:#E8D5B0;--bedd:#D4B896;
-  --go:#B8860B;--gol:#D4A017;--br:#5C3317;--tx:#3A1F0A;
-  --sh:rgba(90,40,10,.18);
-}
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'EB Garamond',Georgia,serif;background:var(--be);color:var(--tx);min-height:100vh;
-  background-image:radial-gradient(ellipse at 20% 0%,rgba(193,68,14,.08) 0%,transparent 60%),
-                   radial-gradient(ellipse at 80% 100%,rgba(184,134,11,.07) 0%,transparent 60%)}
-body::before{content:'';position:fixed;inset:12px;border:2px solid var(--go);pointer-events:none;z-index:100;opacity:.45}
-body::after{content:'';position:fixed;inset:16px;border:1px solid var(--tc);pointer-events:none;z-index:100;opacity:.25}
-.page-wrap{max-width:920px;margin:0 auto;padding:44px 20px 64px}
+/* ── Индикатор движка эфемерид ── */
+.engine-badge{margin:0 0 20px;padding:10px 14px;border-radius:var(--radius-sm);
+  font-size:var(--fs-small);font-weight:700;text-align:center;line-height:1.4;
+  background:var(--c-cream);color:var(--c-ink);border:1px solid var(--c-line);border-left:4px solid var(--c-orange)}
+.engine-badge.loading{color:var(--c-ink-soft);border-left-color:var(--c-line)}
+.engine-badge.fallback{background:#fbeceb;color:var(--c-red);border-color:rgba(223,34,39,.4);border-left-color:var(--c-red)}
 
-/* Header */
-header{text-align:center;margin-bottom:36px}
-.om{font-size:2.4rem;color:var(--tc);display:block;margin-bottom:4px}
-header h1{font-family:'Cinzel',serif;font-size:clamp(1.3rem,3.5vw,1.9rem);font-weight:700;
-  color:var(--tcd);letter-spacing:.06em;line-height:1.2}
-header h1 span{display:block;font-size:.72em;font-weight:400;color:var(--go);letter-spacing:.18em;margin-top:5px}
-.divider{display:flex;align-items:center;gap:12px;margin:14px auto 0;max-width:400px}
-.divider::before,.divider::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--go),transparent)}
-.divider-gem{width:8px;height:8px;background:var(--tc);transform:rotate(45deg);flex-shrink:0}
+/* ── Переключатель вкладок ── */
+.tabs{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 24px}
+.tab{flex:1 1 auto;min-width:120px;min-height:48px;padding:10px 14px;
+  font-family:var(--font-body);font-weight:700;font-size:var(--fs-small);
+  text-transform:uppercase;letter-spacing:.02em;color:var(--c-red);
+  background:transparent;border:2px solid var(--c-red);border-radius:var(--radius-sm);
+  cursor:pointer;transition:background-color .15s,color .15s,border-color .15s}
+.tab:hover{background:rgba(223,34,39,.06)}
+.tab.active{color:var(--c-white);background:var(--c-orange);border-color:var(--c-orange)}
 
-/* Card */
-.card{background:linear-gradient(160deg,#fdf7ec 0%,var(--be) 100%);border:1px solid var(--bedd);
-  border-radius:4px;padding:30px 36px 28px;box-shadow:0 4px 24px var(--sh),inset 0 1px 0 rgba(255,255,255,.7);
-  position:relative;overflow:hidden;margin-bottom:22px}
-.card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;
-  background:linear-gradient(90deg,var(--tcd),var(--tcl),var(--gol),var(--tcl),var(--tcd))}
-.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px 24px}
-.form-group{display:flex;flex-direction:column;gap:5px}
-.form-group.full{grid-column:1/-1}
-label{font-family:'Cinzel',serif;font-size:.7rem;letter-spacing:.12em;color:var(--tcd);text-transform:uppercase}
-input,select{font-family:'EB Garamond',serif;font-size:1rem;background:rgba(255,255,255,.7);
-  border:1px solid var(--bedd);border-bottom-color:var(--go);border-radius:2px;
-  padding:8px 12px;color:var(--tx);transition:border-color .2s,box-shadow .2s;width:100%;outline:none}
-input:focus,select:focus{border-color:var(--tc);box-shadow:0 0 0 2px rgba(193,68,14,.12);background:#fff}
-.hint{font-size:.75rem;color:var(--go);font-style:italic}
-.btn-row{margin-top:22px;display:flex;justify-content:center}
-button[type=submit]{font-family:'Cinzel',serif;font-size:.88rem;letter-spacing:.14em;text-transform:uppercase;
-  background:linear-gradient(135deg,var(--tcd) 0%,var(--tc) 50%,var(--tcl) 100%);
-  color:var(--be);border:none;border-radius:2px;padding:12px 40px;cursor:pointer;
-  box-shadow:0 3px 12px rgba(193,68,14,.35);transition:transform .15s,box-shadow .15s;position:relative}
-button[type=submit]:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(193,68,14,.4)}
+/* ── Таблица карты ── */
+.chart-table-wrap,.table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%}
+table.chart{width:100%;border-collapse:collapse;font-size:var(--fs-small)}
+table.chart th,table.chart td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--c-line);white-space:nowrap}
+table.chart th{color:var(--c-red);text-transform:uppercase;letter-spacing:.02em;font-size:.85em}
+table.chart tr:last-child td{border-bottom:none}
+.retro{color:var(--c-orange);font-weight:700}
+.muted{color:var(--c-ink-soft)}
+.todo{color:var(--c-ink-soft);font-style:italic}
 
-/* Result layout */
-#result{display:none}
-.result-layout{display:grid;grid-template-columns:auto 1fr;gap:24px;align-items:start}
-@media(max-width:700px){.result-layout{grid-template-columns:1fr}}
+/* ── Кнопка-геокодер в строку с полем ── */
+.geo-row{display:flex;gap:8px;align-items:flex-end}
+.geo-row .astro-field{flex:1 1 auto;margin-bottom:0}
+.geo-btn{flex:0 0 auto;min-height:48px;padding:0 16px;white-space:nowrap}
+@media(max-width:480px){.geo-row{flex-direction:column;align-items:stretch}.geo-btn{width:100%}}
+.geo-status{margin:6px 0 0;font-size:var(--fs-small)}
+.field-row{display:flex;gap:12px;flex-wrap:wrap}
+.field-row .astro-field{flex:1 1 140px}
 
-/* Chart container */
-.chart-wrap{
-  background:linear-gradient(160deg,#fdf7ec,#f5e8cf);
-  border:1px solid var(--bedd);border-radius:4px;
-  padding:16px;box-shadow:0 4px 20px var(--sh);
-  position:relative;
-}
-.chart-wrap::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;
-  background:linear-gradient(90deg,var(--go),var(--tcl),var(--go))}
-.chart-title{font-family:'Cinzel',serif;font-size:.65rem;letter-spacing:.16em;
-  color:var(--tc);text-transform:uppercase;text-align:center;margin-bottom:10px}
+/* ── Нади-карта (вкладка 1) ── */
+.astro-app{--go:#b8860b;--tcd:#df2227;--br:#2a2320}
+.nadi-chart-wrap{display:flex;justify-content:center;margin:0 0 20px}
+.nadi-chart-wrap svg{max-width:100%;height:auto;border-radius:var(--radius-sm);border:1px solid var(--c-line)}
+.analysis-card{border:1px solid var(--c-line);border-radius:var(--radius-sm);overflow:hidden;background:var(--c-cream)}
+.analysis-header{background:linear-gradient(135deg,var(--c-red),var(--c-orange));padding:14px 18px}
+.analysis-header h2{margin:0;font-family:var(--font-body);font-weight:700;font-size:var(--fs-body);text-transform:uppercase;letter-spacing:.04em;color:#fff}
+.analysis-header .lagna-info{margin-top:4px;font-size:var(--fs-small);color:rgba(255,255,255,.85)}
+.analysis-body{padding:16px}
+table.planet-table{width:100%;border-collapse:collapse;font-size:var(--fs-small);margin-bottom:16px}
+table.planet-table th,table.planet-table td{padding:7px 8px;text-align:left;border-bottom:1px solid var(--c-line);vertical-align:top}
+table.planet-table th{color:var(--c-red);text-transform:uppercase;font-size:.85em;letter-spacing:.02em}
+.quality-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:middle}
+.nadi-section,.islands-section{margin-top:14px}
+.nadi-title{font-weight:700;color:var(--c-red);text-transform:uppercase;letter-spacing:.03em;font-size:var(--fs-small);margin-bottom:8px}
+.nadi-list{display:flex;flex-direction:column;gap:8px}
+.nadi-item{padding:10px 12px;background:#fff;border-radius:var(--radius-sm);border:1px solid var(--c-line);display:flex;font-size:var(--fs-small);line-height:1.5}
+.nadi-expand-btn{user-select:none}
+.nadi-desc-body.open{display:block!important}
+.island-box{margin-bottom:8px;padding:10px 12px;background:#fcefe9;border-radius:var(--radius-sm);border-left:3px solid var(--c-orange)}
+.island-name{font-weight:700;color:var(--br);margin-bottom:4px;font-size:var(--fs-small)}
+.island-desc{font-size:var(--fs-small);line-height:1.55;color:var(--c-ink-soft)}
+.source-footer{margin-top:14px;padding-top:10px;border-top:1px solid var(--c-line);font-size:var(--fs-small);color:var(--c-ink-soft);line-height:1.5}
 
-/* SVG chart */
-#chartSvg{display:block}
+/* ── Имя по накшатре (вкладка 2) ── */
+.result-card{border:1px solid var(--c-line);border-radius:var(--radius-sm);overflow:hidden;background:var(--c-cream)}
+.result-header{background:linear-gradient(135deg,var(--c-red),var(--c-orange));padding:28px 20px;text-align:center}
+.syllable-main{display:block;font-family:var(--font-display);font-weight:400;font-size:clamp(2.8rem,12vw,4.5rem);line-height:1;color:#fff;letter-spacing:.04em}
+.syllable-devanagari{display:block;margin-top:8px;font-size:clamp(1.4rem,5vw,2rem);color:rgba(255,255,255,.9)}
+.result-body{padding:18px}
+.result-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px 20px}
+.result-item{border-bottom:1px solid var(--c-line);padding-bottom:10px}
+.result-item:last-child{border-bottom:none}
+.result-label{font-weight:700;font-size:.72rem;letter-spacing:.08em;color:var(--c-red);text-transform:uppercase;margin-bottom:3px}
+.result-value{font-size:1.05rem;font-weight:500;color:var(--c-ink)}
+.result-value.large{font-size:1.2rem;color:var(--c-orange);font-weight:700}
+.nakshatra-deity{font-size:.85rem;color:var(--c-ink-soft);font-style:italic;margin-top:2px}
+.all-padas{margin-top:20px;padding-top:16px;border-top:1px dashed var(--c-line)}
+.all-padas-title{font-weight:700;font-size:.72rem;letter-spacing:.06em;color:var(--c-red);text-transform:uppercase;margin-bottom:12px;text-align:center}
+.padas-row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.pada-chip{width:56px;height:56px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;border:1.5px solid var(--c-line);background:#fff;font-size:.78rem;color:var(--c-ink);gap:1px;text-align:center}
+.pada-chip .chip-num{font-size:.55rem;color:var(--c-ink-soft);letter-spacing:.06em}
+.pada-chip.active{background:linear-gradient(135deg,var(--c-red),var(--c-orange));border-color:var(--c-orange);color:#fff}
+.pada-chip.active .chip-num{color:rgba(255,255,255,.8)}
+.moon-details{margin-top:18px;padding:12px 16px;background:var(--c-cream);border:1px solid var(--c-line);border-radius:var(--radius-sm);font-size:.85rem;color:var(--c-ink-soft);text-align:center;line-height:1.7}
+@media(max-width:560px){.result-grid{grid-template-columns:1fr}}
 
-/* Legend */
-.legend{margin-top:12px;display:flex;flex-wrap:wrap;gap:6px 14px;justify-content:center}
-.leg-item{display:flex;align-items:center;gap:5px;font-size:.75rem;color:var(--br)}
-.leg-dot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+/* ── Навграха-янтра (вкладка 3) ── */
+.yantra-wrap{display:flex;flex-direction:column;align-items:center;gap:14px;margin-bottom:18px}
+#yantraCanvas{max-width:100%;height:auto;border:2px solid var(--c-orange);border-radius:var(--radius-sm);box-shadow:0 4px 20px rgba(223,34,39,.15)}
+.alpha-row{display:flex;align-items:center;gap:10px;font-size:var(--fs-small);color:var(--c-ink-soft);width:100%;max-width:380px}
+.alpha-row input[type=range]{flex:1;min-height:auto;padding:0}
+.yantra-download{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 18px;font-weight:700;font-size:var(--fs-small);text-transform:uppercase;letter-spacing:.03em;color:var(--c-red);background:transparent;border:2px solid var(--c-red);border-radius:var(--radius-sm);text-decoration:none}
+.yantra-download:hover{color:#fff;background:var(--c-red)}
+.canvas-legend{display:flex;flex-wrap:wrap;gap:6px 14px;justify-content:center;font-size:var(--fs-small)}
+.cl-item{display:flex;align-items:center;gap:6px}
+.cl-swatch{width:12px;height:12px;border-radius:3px;flex:0 0 auto}
+table.yantra-table{width:100%;border-collapse:collapse;font-size:var(--fs-small);margin:14px 0}
+table.yantra-table th,table.yantra-table td{padding:7px 8px;text-align:left;border-bottom:1px solid var(--c-line)}
+table.yantra-table th{color:var(--c-red);text-transform:uppercase;font-size:.85em}
+.dignity-badge{display:inline-block;padding:2px 8px;border-radius:10px;color:#fff;font-size:.85em;font-weight:700;white-space:nowrap}
+.deg-cell{color:var(--c-ink-soft);white-space:nowrap}
+.aynote{font-size:var(--fs-small);color:var(--c-ink-soft);text-align:center;margin:6px 0}
+.nbhanga-note{margin:10px 0;padding:10px 12px;background:rgba(106,13,173,.08);border:1px solid rgba(106,13,173,.25);border-radius:var(--radius-sm);font-size:var(--fs-small);color:#5a0b96;display:none}
+.nbhanga-note.visible{display:block}
+.upaya-list{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+details.upaya{border:1px solid var(--c-line);border-radius:var(--radius-sm);background:#fff;overflow:hidden}
+details.upaya summary{padding:10px 12px;cursor:pointer;font-weight:700;font-size:var(--fs-small);display:flex;align-items:center;gap:8px;list-style:none}
+details.upaya summary::-webkit-details-marker{display:none}
+.upaya-badge{display:inline-block;width:11px;height:11px;border-radius:50%;flex:0 0 auto}
+details.upaya .db{padding:0 14px 12px;font-size:var(--fs-small);color:var(--c-ink);line-height:1.6}
+details.upaya .db ul{margin:6px 0 0;padding-left:18px}
+details.upaya .db li{margin:3px 0}
 
-/* Analysis panel */
-.analysis-card{background:linear-gradient(160deg,#fff9f0,#fdf3e3);border:1px solid var(--bedd);
-  border-radius:4px;box-shadow:0 4px 20px var(--sh);overflow:hidden;position:relative}
-.analysis-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;
-  background:linear-gradient(90deg,var(--go),var(--tcl),var(--go))}
-.analysis-header{background:linear-gradient(135deg,var(--tcd),#6B1E05);
-  color:var(--be);padding:18px 24px 14px;text-align:center}
-.analysis-header h2{font-family:'Cinzel',serif;font-size:1rem;letter-spacing:.1em;
-  color:var(--gol);font-weight:600}
-.analysis-header .lagna-info{font-size:.82rem;color:rgba(245,236,215,.7);
-  font-style:italic;margin-top:4px}
-.analysis-body{padding:20px 22px}
-
-/* Planet table */
-.planet-table{width:100%;border-collapse:collapse;font-size:.88rem;margin-bottom:18px}
-.planet-table th{font-family:'Cinzel',serif;font-size:.6rem;letter-spacing:.12em;
-  color:var(--tc);text-transform:uppercase;padding:4px 8px;border-bottom:1px solid var(--bedd);text-align:left}
-.planet-table td{padding:5px 8px;border-bottom:1px solid rgba(212,184,150,.3);color:var(--tx)}
-.planet-table tr:last-child td{border-bottom:none}
-.quality-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;vertical-align:middle}
-
-/* Nadi connections */
-.nadi-section{margin-top:16px}
-.nadi-title{font-family:'Cinzel',serif;font-size:.68rem;letter-spacing:.14em;
-  color:var(--tc);text-transform:uppercase;margin-bottom:10px}
-.nadi-list{display:flex;flex-direction:column;gap:6px}
-.nadi-item{display:flex;align-items:center;gap:8px;font-size:.88rem;padding:6px 10px;
-  background:rgba(255,255,255,.4);border:1px solid var(--bedd);border-radius:2px;
-  border-left:3px solid transparent}
-.nadi-item.exalt{border-left-color:#2E8B57}
-.nadi-item.friend{border-left-color:#66BB6A}
-.nadi-item.neutral{border-left-color:var(--gol)}
-.nadi-item.enemy{border-left-color:#FF8C00}
-.nadi-item.debil{border-left-color:#CC2200}
-
-/* Islands */
-.islands-section{margin-top:16px;padding-top:14px;border-top:1px dashed var(--bedd)}
-.island-box{background:rgba(193,68,14,.07);border:1px solid rgba(193,68,14,.25);
-  border-radius:2px;padding:10px 14px;margin-bottom:8px;font-size:.88rem}
-.island-name{font-family:'Cinzel',serif;font-size:.72rem;color:var(--tcd);
-  letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px}
-.island-desc{color:var(--br);line-height:1.6;font-size:.85rem}
-
-/* Source footer */
-.nadi-desc-body.open{display:block !important}
-.source-footer{margin-top:20px;padding:12px 16px;background:rgba(184,134,11,.05);
-  border:1px solid rgba(184,134,11,.18);border-radius:2px;text-align:center;
-  font-size:.78rem;line-height:1.8;color:var(--br)}
-.source-footer a{color:var(--tc);text-decoration:none;border-bottom:1px solid rgba(193,68,14,.3)}
-
-.footer-note{text-align:center;margin-top:28px;font-size:.78rem;color:var(--go);font-style:italic;opacity:.7}
-.error-msg{background:rgba(193,68,14,.08);border:1px solid rgba(193,68,14,.3);border-radius:2px;
-  padding:12px 16px;color:var(--tcd);font-size:.9rem;margin-top:12px;text-align:center;display:none}
-
-@media(max-width:560px){
-  .card{padding:20px 16px 18px}
-  .form-grid{grid-template-columns:1fr}
-  .analysis-body{padding:16px}
-}
+/* ── Доп. блоки Нади-анализа (даша, майтри, йоги, прошлая жизнь, сводки) ── */
+.nadi-block{margin-top:16px;padding:clamp(14px,4vw,18px);border:1px solid var(--c-line);border-radius:var(--radius-sm);background:var(--c-cream)}
+.nadi-block h3{margin:0 0 10px;font-family:var(--font-body);font-weight:700;font-size:var(--fs-body);text-transform:uppercase;letter-spacing:.03em;color:var(--c-red)}
+.dasha-line{margin:5px 0}
+table.maitri-matrix{border-collapse:collapse;font-size:.82rem;margin:0 auto}
+table.maitri-matrix th,table.maitri-matrix td{padding:6px 9px;text-align:center;border:1px solid var(--c-line);white-space:nowrap}
+table.maitri-matrix thead th{color:var(--c-red)}
+table.maitri-matrix tbody th{color:var(--c-ink);text-align:right}
+.maitri-matrix .m-self{color:var(--c-ink-soft)}
+.maitri-matrix .m-am{background:#1b7e3a;color:#fff;font-weight:700}
+.maitri-matrix .m-m{background:#bfe0c7}
+.maitri-matrix .m-s{background:#fff}
+.maitri-matrix .m-sh{background:#f3c7a9}
+.maitri-matrix .m-ash{background:#c0222e;color:#fff;font-weight:700}
 </style>
 </head>
+
 <body>
-<div class="page-wrap">
+<div class="astro-app">
 
-<header>
-  <span class="om">ॐ</span>
-  <h1>Джйотиш · Нади Карта
-    <span>Jyotiṣa Nāḍī Chart · Sidereal Natal Analysis</span>
-  </h1>
-  <div class="divider"><div class="divider-gem"></div></div>
-</header>
+  <header class="astro-header">
+    <h1 class="astro-title">Джйотиш</h1>
+    <p class="astro-subtitle">Расчёты по карте рождения</p>
+  </header>
 
-<div class="card">
-  <form id="chartForm">
-    <div class="form-grid">
-      <div class="form-group">
-        <label>Дата рождения</label>
-        <input type="date" id="bdate" required>
+  <div id="engineBadge" class="engine-badge loading">Загрузка швейцарских эфемерид…</div>
+
+  <!-- ОБЩАЯ ФОРМА ДАННЫХ РОЖДЕНИЯ (на все три инструмента) -->
+  <section class="astro-section">
+    <h2 class="astro-h2">Данные рождения</h2>
+    <div class="astro-card">
+      <div class="field-row">
+        <div class="astro-field">
+          <label for="bdate">Дата рождения</label>
+          <input id="bdate" type="date">
+        </div>
+        <div class="astro-field">
+          <label for="btime">Время рождения</label>
+          <input id="btime" type="time">
+        </div>
       </div>
-      <div class="form-group">
-        <label>Время рождения</label>
-        <input type="time" id="btime" value="12:00" required>
+
+      <div class="geo-row">
+        <div class="astro-field">
+          <label for="bplace">Место рождения</label>
+          <input id="bplace" type="text" placeholder="Город, страна">
+        </div>
+        <button type="button" class="astro-btn geo-btn" onclick="geocode()">Найти координаты</button>
       </div>
-      <div class="form-group full">
-        <label>Город рождения</label>
-        <input type="text" id="bcity" placeholder="Москва, Дели, Мумбаи…" autocomplete="off">
-        <span class="hint">Координаты и часовой пояс заполнятся автоматически</span>
+      <p id="geoStatus" class="geo-status muted"></p>
+
+      <div class="field-row">
+        <div class="astro-field">
+          <label for="blat">Широта</label>
+          <input id="blat" type="number" step="0.0001" placeholder="55.7558">
+        </div>
+        <div class="astro-field">
+          <label for="blon">Долгота</label>
+          <input id="blon" type="number" step="0.0001" placeholder="37.6173">
+        </div>
+        <div class="astro-field">
+          <label for="btz">Часовой пояс (UTC±)</label>
+          <input id="btz" type="number" step="0.25" placeholder="определится по месту">
+        </div>
       </div>
-      <div class="form-group">
-        <label>Широта °</label>
-        <input type="number" id="blat" step=".0001" min="-90" max="90" placeholder="55.7558">
-      </div>
-      <div class="form-group">
-        <label>Долгота °</label>
-        <input type="number" id="blon" step=".0001" min="-180" max="180" placeholder="37.6173">
-      </div>
-      <div class="form-group full">
-        <label>Часовой пояс (UTC±)</label>
-        <select id="btz">
-          <option value="-12">UTC−12</option><option value="-11">UTC−11</option>
-          <option value="-10">UTC−10</option><option value="-9">UTC−9</option>
-          <option value="-8">UTC−8</option><option value="-7">UTC−7</option>
-          <option value="-6">UTC−6</option><option value="-5">UTC−5</option>
-          <option value="-4">UTC−4</option><option value="-3">UTC−3</option>
-          <option value="-2">UTC−2</option><option value="-1">UTC−1</option>
-          <option value="0">UTC±0</option>
-          <option value="1">UTC+1</option><option value="2">UTC+2</option>
-          <option value="3" selected>UTC+3 (Москва)</option>
-          <option value="4">UTC+4</option><option value="5">UTC+5</option>
-          <option value="5.5">UTC+5:30 (Индия)</option>
-          <option value="6">UTC+6</option><option value="7">UTC+7</option>
-          <option value="8">UTC+8</option><option value="9">UTC+9</option>
-          <option value="10">UTC+10</option><option value="11">UTC+11</option>
-          <option value="12">UTC+12</option>
-        </select>
-      </div>
+
+      <button class="astro-btn astro-btn--block" onclick="computeAll()">Рассчитать</button>
     </div>
-    <div class="btn-row"><button type="submit">Построить Нади карту</button></div>
-  </form>
-  <div class="error-msg" id="errMsg"></div>
-</div>
+  </section>
 
-<div id="result"></div>
+  <!-- ВКЛАДКИ -->
+  <nav class="tabs" role="tablist">
+    <button class="tab active" data-tab="nadi"   onclick="switchTab('nadi')">Нади-карта</button>
+    <button class="tab"        data-tab="naksh"  onclick="switchTab('naksh')">Имя по накшатре</button>
+    <button class="tab"        data-tab="yantra" onclick="switchTab('yantra')">Навграха-янтра</button>
+  </nav>
 
-<p class="footer-note">Сидерическая система · Аянамса Лахири · Южноиндийский формат · нади-линии по принципу знак→владыка</p>
+  <!-- Панель: Нади-карта -->
+  <section class="astro-section tab-panel" id="panel-nadi">
+    <div id="out-nadi"><p class="muted">Заполни данные рождения и нажми «Рассчитать».</p></div>
+  </section>
+
+  <!-- Панель: Имя по накшатре -->
+  <section class="astro-section tab-panel" id="panel-naksh" hidden>
+    <div id="out-naksh"><p class="muted">Заполни данные рождения и нажми «Рассчитать».</p></div>
+  </section>
+
+  <!-- Панель: Навграха-янтра -->
+  <section class="astro-section tab-panel" id="panel-yantra" hidden>
+    <div id="out-yantra"><p class="muted">Заполни данные рождения и нажми «Рассчитать».</p></div>
+  </section>
+
+  <footer class="astro-footer">
+    <p class="astro-disclaimer">
+      <strong>О методике.</strong>
+      Расчёты выполняются в ведической (сидерической) системе с использованием
+      айанамши Лахири. Эфемериды: Swiss Ephemeris. Результат носит
+      справочно-просветительский характер.
+    </p>
+    <p class="astro-credits">
+      Использованы: Swiss Ephemeris (Astrodienst AG, лицензия AGPL/коммерческая).
+      Геокодирование: OpenStreetMap Nominatim.
+    </p>
+    <p class="astro-copyright">
+      © <span id="year"></span> Индийская астрология со Светланой Кройцер · goroskop1008.ru
+    </p>
+  </footer>
+
 </div>
 
 <script>
-// ═══════════════════════════════════════════════════════════════
-//  MATH HELPERS
-// ═══════════════════════════════════════════════════════════════
-const R=Math.PI/180, D=180/Math.PI;
-const n360=x=>((x%360)+360)%360;
-const rad=x=>x*R, deg=x=>x*D;
+/* ════════════════════════════════════════════════════════════════════
+   ОБЩИЙ АСТРОНОМИЧЕСКИЙ ДВИЖОК  (перенесён из приложения «Камни»)
+   Swiss Ephemeris (WASM, режим Moshier) → сидерические долготы, аянамша
+   Лахири. Если WASM не загрузился — аналитический запасной расчёт.
+   ════════════════════════════════════════════════════════════════════ */
+const D2R = Math.PI / 180;
+const R2D = 180 / Math.PI;
+function nd(d){return((d%360)+360)%360;}
+function nr(r){return((r%(2*Math.PI))+(2*Math.PI))%(2*Math.PI);}
 
-// ═══════════════════════════════════════════════════════════════
-//  JULIAN DAY
-// ═══════════════════════════════════════════════════════════════
-function JD(yr,mo,dy,hr,mn,sc){
-  if(mo<=2){yr--;mo+=12}
-  const A=Math.floor(yr/100),B=2-A+Math.floor(A/4);
-  return Math.floor(365.25*(yr+4716))+Math.floor(30.6001*(mo+1))+dy+B-1524.5
-        +(hr+mn/60+sc/3600)/24;
+// Юлианский день (UT) из местного гражданского времени + смещение пояса
+function jdLocal(y,mo,d,h,mi,tz){
+  const ut=h+mi/60-tz;
+  let Y=y,M=mo,D=d+ut/24;
+  if(M<=2){Y--;M+=12;}
+  const A=Math.floor(Y/100),B=2-A+Math.floor(A/4);
+  return Math.floor(365.25*(Y+4716))+Math.floor(30.6001*(M+1))+D+B-1524.5;
 }
 
-// ═══════════════════════════════════════════════════════════════
-//  KEPLER'S EQUATION SOLVER
-// ═══════════════════════════════════════════════════════════════
-function solveKepler(M_deg,e){
-  let M=rad(M_deg),E=M;
-  for(let i=0;i<12;i++) E-=(E-e*Math.sin(E)-M)/(1-e*Math.cos(E));
-  const v=2*Math.atan2(Math.sqrt(1+e)*Math.sin(E/2),Math.sqrt(1-e)*Math.cos(E/2));
-  return deg(v);
+// Аянамша Лахири (Читрапакша)
+function lahiriAyanamsa(JD){
+  const t=(JD-2451545.0)/36525.0;
+  return 23.85306 + 1.3968878*t + 0.0003071*t*t;
 }
 
-// ═══════════════════════════════════════════════════════════════
-//  ORBITAL ELEMENTS J2000 (from Meeus Table 31.a)
-//  [L0, dL, e0, de, a, w0, dw]
-// ═══════════════════════════════════════════════════════════════
-const OE={
-  Me:[252.250906,149474.0722491, 0.20563075, 0.000020407,0.387098, 77.456119,0.1588643],
-  Ve:[181.979801, 58519.2130302, 0.00677192,-0.000047765,0.723330,131.563703,0.0048746],
-  Ea:[100.466457, 36000.7698278, 0.01670863,-0.000042037,1.000000,102.937348,0.3225557],
-  Ma:[355.433275, 19141.6964746, 0.09340065, 0.000090484,1.523688,336.060234,0.4438898],
-  Ju:[ 34.351519,  3034.9056606, 0.04849793, 0.000163244,5.202603, 14.331004,0.2155209],
-  Sa:[ 50.077444,  1222.1137943, 0.05554814,-0.000346641,9.554909, 93.057439,0.5765090],
-};
+// ── Движок Swiss Ephemeris ──
+let SWE = null;
+let SWE_READY = false;
+let SWE_FAILED = false;
+let _enginePromise = null;
 
-function heliocentric(k,T){
-  const[L0,dL,e0,de,a,w0,dw]=OE[k];
-  const L=n360(L0+dL*T),e=e0+de*T,w=n360(w0+dw*T);
-  const M=n360(L-w),v=solveKepler(M,e);
-  const lon=n360(w+v);
-  const r=a*(1-e*e)/(1+e*Math.cos(rad(v)));
-  return{lon,r};
-}
+function ensureEngine(){ if(!_enginePromise) _enginePromise=initEngine(); return _enginePromise; }
 
-function geocentric(pl,ea){
-  const dx=pl.r*Math.cos(rad(pl.lon))-ea.r*Math.cos(rad(ea.lon));
-  const dy=pl.r*Math.sin(rad(pl.lon))-ea.r*Math.sin(rad(ea.lon));
-  return n360(deg(Math.atan2(dy,dx)));
-}
-
-// ═══════════════════════════════════════════════════════════════
-//  MOON (Meeus Ch.47 - accurate)
-// ═══════════════════════════════════════════════════════════════
-function moonLon(jd){
-  const T=(jd-2451545)/36525,T2=T*T,T3=T2*T,T4=T3*T;
-  let Lp=n360(218.3164477+481267.88123421*T-0.0015786*T2+T3/538841-T4/65194000);
-  let Dv=n360(297.8501921+445267.1114034*T-0.0018819*T2+T3/545868-T4/113065000);
-  let M =n360(357.5291092+35999.0502909*T-0.0001536*T2+T3/24490000);
-  let Mp=n360(134.9633964+477198.8675055*T+0.0087414*T2+T3/69699-T4/14712000);
-  let F =n360(93.2720950+483202.0175233*T-0.0036539*T2-T3/3526000+T4/863310000);
-  const A1=n360(119.75+131.849*T),A2=n360(53.09+479264.290*T);
-  const E=1-0.002516*T-0.0000074*T2;
-  const tL=[
-    [0,0,1,0,6288774],[2,0,-1,0,1274027],[2,0,0,0,658314],[0,0,2,0,213618],
-    [0,1,0,0,-185116],[0,0,0,2,-114332],[2,0,-2,0,58793],[2,-1,-1,0,57066],
-    [2,0,1,0,53322],[2,-1,0,0,45758],[0,1,-1,0,-40923],[1,0,0,0,-34720],
-    [0,1,1,0,-30383],[2,0,0,-2,15327],[0,0,1,2,-12528],[0,0,1,-2,10980],
-    [4,0,-1,0,10675],[0,0,3,0,10034],[4,0,-2,0,8548],[2,1,-1,0,-7888],
-    [2,1,0,0,-6766],[1,0,-1,0,-5163],[1,1,0,0,4987],[2,-1,1,0,4036],
-    [2,0,2,0,3994],[4,0,0,0,3861],[2,0,-3,0,3665],[0,1,-2,0,-2689],
-    [2,0,-1,2,-2602],[2,-1,-2,0,2390],[1,-1,0,0,-2348],[2,-2,0,0,2236],
-    [0,1,2,0,-2120],[0,2,0,0,-2069],[2,-2,-1,0,2048],[2,0,1,-2,-1773],
-    [2,0,0,2,-1595],[4,-1,-1,0,1215],[0,0,2,2,-1110],[3,0,-1,0,-892],
-    [2,1,1,0,-810],[4,-1,-2,0,759],[0,2,-1,0,-713],[2,2,-1,0,-700],
-    [2,1,-2,0,691],[2,-1,0,-2,596],[4,0,1,0,549],[0,0,4,0,537],
-    [4,-1,0,0,520],[1,0,-2,0,-487],[2,1,0,-2,-399],[0,0,2,-2,-381],
-    [1,1,1,0,351],[3,0,-2,0,-340],[4,0,-3,0,330],[2,-1,2,0,327],
-    [0,2,1,0,-323],[1,1,-1,0,299],[2,0,3,0,294]
-  ];
-  let SL=0;
-  for(const[d,m,mp,f,c] of tL){
-    const arg=d*Dv+m*M+mp*Mp+f*F;
-    let cf=c;
-    if(Math.abs(m)===1)cf*=E;
-    if(Math.abs(m)===2)cf*=E*E;
-    SL+=cf*Math.sin(rad(arg));
+async function initEngine(){
+  const badge=document.getElementById('engineBadge');
+  try{
+    // Опубликованный бандл @swisseph/browser «протекает» CJS-экспортом в
+    // глобальную область; даём ему «слив» exports, инстанцируем emscripten-
+    // Module и вызываем C-функции swe_*_wrap напрямую через ccall.
+    if(typeof window.exports==='undefined'){ window.exports={}; window.module={exports:window.exports}; }
+    const mod = await import('./swisseph-browser.js');
+    const SwissEphemeris = mod.SwissEphemeris || window.SwissEphemeris || mod.default;
+    const inst = new SwissEphemeris();
+    await inst.init();                     // создаёт emscripten Module + грузит .wasm
+    const m = inst.module;
+    const GREG = 1;                        // григорианский календарь
+    SWE = {
+      julday:(y,mo,d,hUT)=> m.ccall('swe_julday_wrap','number',
+        ['number','number','number','number','number'], [y,mo,d,hUT,GREG]),
+      calc:(jd,body,flags)=>{
+        const xx=m._malloc(6*8), se=m._malloc(256);
+        const r=m.ccall('swe_calc_ut_wrap','number',
+          ['number','number','number','number','number'], [jd,body,flags,xx,se]);
+        const lon=m.getValue(xx,'double'), spd=m.getValue(xx+3*8,'double');
+        m._free(xx); m._free(se);
+        if(r<0) throw new Error('swe_calc_ut failed (body '+body+')');
+        return {lon, spd};
+      },
+      houses:(jd,lat,lon,hsys)=>{
+        const c=m._malloc(13*8), a=m._malloc(10*8);
+        m.ccall('swe_houses_wrap','number',
+          ['number','number','number','number','number','number'], [jd,lat,lon,hsys,c,a]);
+        const asc=m.getValue(a,'double');  // ascmc[0] = Асцендент
+        m._free(c); m._free(a);
+        return asc;
+      },
+    };
+    // дымовой тест — долгота Солнца должна быть конечной
+    if(!isFinite(SWE.calc(SWE.julday(2000,1,1,12),0,4|256).lon)) throw new Error('no result');
+    SWE_READY = true;
+    if(badge){ badge.className='engine-badge'; badge.textContent='Швейцарские эфемериды загружены (Moshier) · аянамша Лахири'; }
+  }catch(e){
+    console.warn('Swiss Ephemeris init failed — using analytic fallback', e);
+    SWE_FAILED = true;
+    if(badge){ badge.className='engine-badge fallback'; badge.textContent='Швейцарские эфемериды не загрузились — приближённый расчёт. Откройте страницу через сервер (python3 -m http.server).'; }
   }
-  SL+=3958*Math.sin(rad(A1))+1962*Math.sin(rad(Lp-F))+318*Math.sin(rad(A2));
-  return n360(Lp+SL/1e6);
 }
 
-// ═══════════════════════════════════════════════════════════════
-//  LAHIRI AYANAMSA
-// ═══════════════════════════════════════════════════════════════
-function ayanamsa(jd){
-  const ayan2000=23+51/60+11/3600;
-  return n360(ayan2000+(jd-2451545)*50.2564/1296000);
+const SWE_ID={Sun:0,Moon:1,Mercury:2,Venus:3,Mars:4,Jupiter:5,Saturn:6,Rahu:11}; // Rahu = true node
+const HSYS_WHOLE='W'.charCodeAt(0);
+
+// ── Аналитический ЗАПАСНОЙ расчёт (если WASM недоступен) ──
+function eps(JD){const T=(JD-2451545)/36525;return 23.439291111-0.013004167*T;}
+function gmst(JD){const T=(JD-2451545)/36525;return nd(280.46061837+360.98564736629*(JD-2451545)+0.000387933*T*T);}
+function sunLon(JD){
+  const T=(JD-2451545)/36525;
+  const L0=280.46646+36000.76983*T+0.0003032*T*T;
+  const M=nd(357.52911+35999.05029*T-0.0001537*T*T)*D2R;
+  const C=(1.914602-0.004817*T-0.000014*T*T)*Math.sin(M)+(0.019993-0.000101*T)*Math.sin(2*M)+0.000289*Math.sin(3*M);
+  const om=nd(125.04-1934.136*T)*D2R;
+  return nd(L0+C-0.00569-0.00478*Math.sin(om));
+}
+function moonLon(JD){
+  const T=(JD-2451545)/36525;
+  const L=nd(218.3164477+481267.88123421*T-0.0015786*T*T);
+  const D=nd(297.8501921+445267.1114034*T-0.0018819*T*T)*D2R;
+  const M=nd(357.5291092+35999.0502909*T-0.0001536*T*T)*D2R;
+  const Mp=nd(134.9633964+477198.8675055*T+0.0087414*T*T)*D2R;
+  const F=nd(93.2720950+483202.0175233*T-0.0036539*T*T)*D2R;
+  const E=1-0.002516*T-0.0000074*T*T;
+  const dl=6.288774*Math.sin(Mp)+1.274027*Math.sin(2*D-Mp)+0.658314*Math.sin(2*D)+0.213618*Math.sin(2*Mp)
+   -0.185116*E*Math.sin(M)-0.114332*Math.sin(2*F)+0.058793*Math.sin(2*D-2*Mp)+0.057066*E*Math.sin(2*D-M-Mp)
+   +0.053322*Math.sin(2*D+Mp)+0.045758*E*Math.sin(2*D-M)-0.040923*E*Math.sin(M-Mp)-0.034720*Math.sin(D)
+   -0.030383*E*Math.sin(M+Mp)+0.015327*Math.sin(2*D-2*F)-0.012528*Math.sin(Mp+2*F)+0.010980*Math.sin(Mp-2*F)
+   +0.010675*Math.sin(4*D-Mp)+0.010034*Math.sin(3*Mp)+0.008548*Math.sin(4*D-2*Mp)-0.007888*E*Math.sin(2*D+M-Mp)
+   -0.006766*E*Math.sin(2*D+M)-0.005163*Math.sin(D-Mp)+0.004987*E*Math.sin(D+M)+0.004036*E*Math.sin(2*D-M+Mp)
+   +0.003994*Math.sin(2*D+2*Mp)+0.003861*Math.sin(4*D)+0.003665*Math.sin(2*D-3*Mp)-0.002689*E*Math.sin(M-2*Mp)
+   -0.002602*Math.sin(2*D-Mp+2*F)+0.002390*E*Math.sin(2*D-M-2*Mp)-0.002348*Math.sin(D+Mp)+0.002236*E*Math.sin(2*D-2*M)
+   -0.002120*E*Math.sin(M+2*Mp)-0.002069*E*E*Math.sin(2*M)+0.002048*E*E*Math.sin(2*D-2*M-Mp)-0.001773*Math.sin(2*D+Mp-2*F)
+   -0.001595*Math.sin(2*D+2*F)+0.001215*E*Math.sin(4*D-M-Mp)-0.001110*Math.sin(2*Mp+2*F)-0.000892*Math.sin(3*D-Mp)
+   -0.000811*E*Math.sin(M+Mp+2*F)+0.000761*E*Math.sin(4*D-M-2*Mp)+0.000704*E*E*Math.sin(2*D-2*M+Mp)-0.000630*E*Math.sin(3*D+Mp);
+  return nd(L+dl);
+}
+const ORB={
+  Mercury:{L0:252.250906,L1:149474.0722491,w0:77.456119,w1:1.556628,e0:0.20563069,e1:-2.04e-5,a:0.387098},
+  Venus:{L0:181.979801,L1:58519.2130302,w0:131.563703,w1:1.402216,e0:0.00677323,e1:-4.94e-5,a:0.723330},
+  Earth:{L0:100.464457,L1:36000.7698278,w0:102.937348,w1:1.719527,e0:0.01670862,e1:-4.24e-5,a:1.000000},
+  Mars:{L0:355.433275,L1:19141.6964746,w0:336.060234,w1:1.840330,e0:0.09341233,e1:9.15e-5,a:1.523688},
+  Jupiter:{L0:34.351519,L1:3036.3027748,w0:14.331309,w1:1.612635,e0:0.04849485,e1:1.63e-4,a:5.202561},
+  Saturn:{L0:50.077444,L1:1223.5110686,w0:93.057209,w1:1.963734,e0:0.05550825,e1:-3.46e-4,a:9.537070},
+};
+function solveKepler(M,e){let E=M;for(let i=0;i<60;i++){const dE=(M-E+e*Math.sin(E))/(1-e*Math.cos(E));E+=dE;if(Math.abs(dE)<1e-11)break;}return E;}
+function helioXY(name,T){const el=ORB[name];const L=nd(el.L0+el.L1*T)*D2R;const w=nd(el.w0+el.w1*T)*D2R;const e=el.e0+el.e1*T;const M=nr(L-w);const E=solveKepler(M,e);const nu=2*Math.atan2(Math.sqrt(1+e)*Math.sin(E/2),Math.sqrt(1-e)*Math.cos(E/2));const r=el.a*(1-e*Math.cos(E));const lam=nu+w;return{x:r*Math.cos(lam),y:r*Math.sin(lam)};}
+function geoLonPlanet(name,T){const p=helioXY(name,T);const e=helioXY('Earth',T);return nd(Math.atan2(p.y-e.y,p.x-e.x)*R2D);}
+function mercuryLon(JD){return geoLonPlanet('Mercury',(JD-2451545)/36525);}
+function venusLon(JD){return geoLonPlanet('Venus',(JD-2451545)/36525);}
+function marsLon(JD){return geoLonPlanet('Mars',(JD-2451545)/36525);}
+function jupiterLon(JD){return geoLonPlanet('Jupiter',(JD-2451545)/36525);}
+function saturnLon(JD){return geoLonPlanet('Saturn',(JD-2451545)/36525);}
+function rahuLon(JD){const T=(JD-2451545)/36525;return nd(125.04455501-1934.13626197*T+0.00207696*T*T+0.00000215*T*T*T);}
+function ascLon(JD,lat,lon){
+  const gst=gmst(JD);const lst=nd(gst+lon);const e=eps(JD)*D2R;const L=lat*D2R;const R=lst*D2R;
+  const y=-Math.cos(R);const x=Math.sin(R)*Math.cos(e)+Math.tan(L)*Math.sin(e);
+  let a=nd(Math.atan2(y,x)*R2D);const aR=a*D2R;
+  const alpha=nd(Math.atan2(Math.sin(aR)*Math.cos(e),Math.cos(aR))*R2D);
+  if(nd(lst-alpha)<180)a=nd(a+180);
+  return a;
+}
+function fdSpeed(fn,JD){const dt=0.5;let s=fn(JD+dt)-fn(JD-dt);if(s>180)s-=360;if(s<-180)s+=360;return s/(2*dt);}
+
+// ── Единый расчёт карты → сидерические долготы + скорости ──
+async function computeChart(y,mo,d,h,mi,tz,lat,lon){
+  await ensureEngine();
+  const JD=jdLocal(y,mo,d,h,mi,tz);
+  const ay=lahiriAyanamsa(JD);
+  const trop={}, spd={};
+  let ascTrop, source;
+
+  if(SWE_READY){
+    const utHour=h+mi/60-tz;
+    const jdUT=SWE.julday(y,mo,d,utHour);
+    const FL=4|256; // Moshier | Speed
+    for(const k in SWE_ID){
+      const r=SWE.calc(jdUT, SWE_ID[k], FL);
+      trop[k]=nd(r.lon);
+      spd[k]=r.spd;
+    }
+    ascTrop=nd(SWE.houses(jdUT,lat,lon,HSYS_WHOLE));
+    source='swisseph';
+  }else{
+    trop.Sun=sunLon(JD); trop.Moon=moonLon(JD);
+    trop.Mercury=mercuryLon(JD); trop.Venus=venusLon(JD); trop.Mars=marsLon(JD);
+    trop.Jupiter=jupiterLon(JD); trop.Saturn=saturnLon(JD); trop.Rahu=rahuLon(JD);
+    spd.Sun=fdSpeed(sunLon,JD); spd.Moon=fdSpeed(moonLon,JD);
+    spd.Mercury=fdSpeed(mercuryLon,JD); spd.Venus=fdSpeed(venusLon,JD); spd.Mars=fdSpeed(marsLon,JD);
+    spd.Jupiter=fdSpeed(jupiterLon,JD); spd.Saturn=fdSpeed(saturnLon,JD); spd.Rahu=fdSpeed(rahuLon,JD);
+    ascTrop=ascLon(JD,lat,lon);
+    source='fallback';
+  }
+
+  const sid=t=>nd(t-ay);
+  const pos={};
+  for(const k in trop) pos[k]=sid(trop[k]);
+  pos.Ketu=nd(pos.Rahu+180);
+  spd.Ketu=spd.Rahu;
+  pos.Lagna=sid(ascTrop);
+  return {pos,spd,ay,source};
 }
 
-// ═══════════════════════════════════════════════════════════════
-//  ASCENDANT (Lagna)
-// ═══════════════════════════════════════════════════════════════
-function calcLagna(jd,lat,lon,tz){
-  const T=(jd-2451545)/36525;
-  const JD0=Math.floor(jd-0.5)+0.5;
-  const T0=(JD0-2451545)/36525;
-  let GMST=n360(100.4606184+36000.7700536*T0+0.000387933*T0*T0);
-  const UT=((jd-JD0)*24);
-  GMST=n360(GMST+360.98564724*UT/24);
-  const LST=n360(GMST+lon);
-  const eps=rad(23.4392911-0.013004167*T);
-  const RAMC=rad(LST);
-  const tAsc=Math.cos(RAMC)/(-Math.sin(RAMC)*Math.cos(eps)-Math.tan(rad(lat))*Math.sin(eps));
-  let tropAsc=deg(Math.atan(tAsc));
-  if(Math.cos(RAMC)<0) tropAsc+=180;
-  else if(Math.sin(RAMC)>0) tropAsc+=360;
-  tropAsc=n360(tropAsc);
-  return n360(tropAsc-ayanamsa(jd));
+/* ════════════════════════════════════════════════════════════════════
+   ОБЩИЕ СПРАВОЧНИКИ И ХЕЛПЕРЫ
+   ════════════════════════════════════════════════════════════════════ */
+const SIGN_RU=['Овен','Телец','Близнецы','Рак','Лев','Дева','Весы','Скорпион','Стрелец','Козерог','Водолей','Рыбы'];
+const PL_RU={Sun:'Солнце',Moon:'Луна',Mars:'Марс',Mercury:'Меркурий',Jupiter:'Юпитер',Venus:'Венера',Saturn:'Сатурн',Rahu:'Раху',Ketu:'Кету',Lagna:'Лагна'};
+const PL_ORDER=['Lagna','Sun','Moon','Mars','Mercury','Jupiter','Venus','Saturn','Rahu','Ketu'];
+
+function signIdx(lon){return Math.floor(nd(lon)/30);}
+function degInSign(lon){return nd(lon)%30;}
+function fmtDeg(lon){const w=degInSign(lon);const dd=Math.floor(w);const mm=Math.floor((w-dd)*60);return dd+'°'+String(mm).padStart(2,'0')+"'";}
+function houseFromLagna(lon,lagLon){return((signIdx(lon)-signIdx(lagLon)+12)%12)+1;}
+function isRetro(p,chart){return['Mercury','Venus','Mars','Jupiter','Saturn'].includes(p)&&chart.spd[p]<0;}
+
+/* ════════════════════════════════════════════════════════════════════
+   ГЕОКОДЕР + ИСТОРИЧЕСКИЙ ЧАСОВОЙ ПОЯС
+   Место → координаты (Nominatim) → IANA-зона (timeapi.io) → UTC-сдвиг
+   на дату рождения с учётом зимнего/летнего времени и истории (Intl).
+   ════════════════════════════════════════════════════════════════════ */
+let BIRTH_ZONE=null, LAST_PLACE='';
+
+// UTC-сдвиг (часы) для локального времени в зоне — историю и зимнее/летнее
+// время берёт встроенная база IANA браузера.
+function tzOffsetForZone(zone, y,mo,d,h,mi){
+  try{
+    const dtf=new Intl.DateTimeFormat('en-US',{timeZone:zone,hourCycle:'h23',
+      year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    const getOff=(utcMs)=>{
+      const p={}; for(const part of dtf.formatToParts(new Date(utcMs))) p[part.type]=part.value;
+      const asLocal=Date.UTC(+p.year,+p.month-1,+p.day,+p.hour,+p.minute,+p.second);
+      return (asLocal-utcMs)/3600000;
+    };
+    const guessUTC=Date.UTC(y,mo-1,d,h,mi);
+    let off=getOff(guessUTC);
+    off=getOff(guessUTC-off*3600000);   // вторая итерация — точный сдвиг для локального времени
+    return Math.round(off*100)/100;
+  }catch(e){ return null; }
 }
 
-// ═══════════════════════════════════════════════════════════════
-//  ALL POSITIONS
-// ═══════════════════════════════════════════════════════════════
-function calcPositions(jd,lat,lon,tz){
-  const T=(jd-2451545)/36525;
-  const ay=ayanamsa(jd);
-  const sid=x=>n360(x-ay);
-
-  const ea=heliocentric('Ea',T);
-  const sunTrop=n360(ea.lon+180);
-
-  // Major Jupiter-Saturn perturbation for Mars
-  const Ju=heliocentric('Ju',T),Sa=heliocentric('Sa',T);
-  const Mah=heliocentric('Ma',T);
-  // Add simple perturbation to Mars
-  const dpMa=-0.00318*Math.sin(rad(n360(84.6+Ju.lon)));
-  const marsGeo=n360(geocentric({lon:n360(Mah.lon+dpMa*50),r:Mah.r},ea));
-
-  const lagna=calcLagna(jd,lat,lon,tz);
-  const rahuTrop=n360(125.04452-1934.136261*T+0.0020708*T*T);
-
-  return{
-    La:{lon:lagna, label:'Лагна'},
-    Su:{lon:sid(sunTrop)},
-    Mo:{lon:sid(moonLon(jd))},
-    Me:{lon:sid(geocentric(heliocentric('Me',T),ea))},
-    Ve:{lon:sid(geocentric(heliocentric('Ve',T),ea))},
-    Ma:{lon:sid(marsGeo)},
-    Ju:{lon:sid(geocentric(Ju,ea))},
-    Sa:{lon:sid(geocentric(Sa,ea))},
-    Ra:{lon:sid(rahuTrop)},
-    Ke:{lon:sid(n360(rahuTrop+180))},
-  };
+async function detectZone(lat,lon){
+  const r=await fetch('https://timeapi.io/api/timezone/coordinate?latitude='+lat+'&longitude='+lon);
+  if(!r.ok) throw new Error('tz '+r.status);
+  const d=await r.json();
+  return d.timeZone||null;
 }
 
-// ═══════════════════════════════════════════════════════════════
-//  JYOTISH / NADI DATA
-// ═══════════════════════════════════════════════════════════════
-const SIGN_NAMES=['Овен','Телец','Близнецы','Рак','Лев','Дева',
-                  'Весы','Скорпион','Стрелец','Козерог','Водолей','Рыбы'];
-const SIGN_SAN  =['Meṣa','Vṛṣabha','Mithuna','Karkaṭa','Siṃha','Kanyā',
-                  'Tulā','Vṛścika','Dhanuṣa','Makara','Kumbha','Mīna'];
+// Заполнить поле пояса сдвигом для текущей даты рождения. true — если получилось.
+function applyZoneOffset(){
+  if(!BIRTH_ZONE) return false;
+  const bd=document.getElementById('bdate').value;
+  if(!bd) return false;
+  const [y,mo,d]=bd.split('-').map(Number);
+  const bt=document.getElementById('btime').value;
+  let h=12,mi=0; if(bt){ const t=bt.split(':').map(Number); h=t[0]; mi=t[1]; }
+  const off=tzOffsetForZone(BIRTH_ZONE,y,mo,d,h,mi);
+  if(off==null) return false;
+  document.getElementById('btz').value=off;
+  return true;
+}
+
+function setZoneStatus(){
+  const st=document.getElementById('geoStatus');
+  if(!LAST_PLACE) return;
+  st.className='geo-status muted';
+  if(BIRTH_ZONE){
+    const off=document.getElementById('btz').value;
+    if(off!==''&&isFinite(parseFloat(off))){
+      const o=parseFloat(off);
+      st.textContent='Найдено: '+LAST_PLACE+' · зона '+BIRTH_ZONE+' · UTC'+(o>=0?'+':'')+o+' (на дату рождения, с учётом зимнего/летнего времени)';
+    }else{
+      st.textContent='Найдено: '+LAST_PLACE+' · зона '+BIRTH_ZONE+'. Укажите дату рождения — пояс подставится автоматически.';
+    }
+  }else{
+    st.textContent='Найдено: '+LAST_PLACE+'. Часовой пояс определить не удалось — укажите вручную (UTC±).';
+  }
+}
+
+async function geocode(){
+  const q=document.getElementById('bplace').value.trim();
+  const st=document.getElementById('geoStatus');
+  if(!q){ st.className='geo-status fallback'; st.textContent='Введите название места.'; return; }
+  st.className='geo-status muted'; st.textContent='Ищу координаты…';
+  BIRTH_ZONE=null; LAST_PLACE='';
+  try{
+    const url='https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=ru&q='+encodeURIComponent(q);
+    const r=await fetch(url,{headers:{'Accept':'application/json'}});
+    const data=await r.json();
+    if(!data||!data.length){ st.className='geo-status'; st.textContent='Место не найдено. Введите координаты вручную.'; return; }
+    const hit=data[0];
+    document.getElementById('blat').value=parseFloat(hit.lat).toFixed(4);
+    document.getElementById('blon').value=parseFloat(hit.lon).toFixed(4);
+    LAST_PLACE=(hit.display_name||q);
+    st.textContent='Найдено: '+LAST_PLACE+'. Определяю часовой пояс…';
+    try{ BIRTH_ZONE=await detectZone(hit.lat,hit.lon); }catch(_){ BIRTH_ZONE=null; }
+    applyZoneOffset();
+    setZoneStatus();
+  }catch(e){
+    st.className='geo-status'; st.textContent='Не удалось получить координаты (нет интернета?). Введите широту/долготу вручную.';
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   ОБЩАЯ ФОРМА → РАСЧЁТ → ВЫВОД АКТИВНОЙ ВКЛАДКИ
+   ════════════════════════════════════════════════════════════════════ */
+let CHART=null;
+
+function readForm(){
+  const bdate=document.getElementById('bdate').value;
+  const btime=document.getElementById('btime').value;
+  const lat=parseFloat(document.getElementById('blat').value);
+  const lon=parseFloat(document.getElementById('blon').value);
+  const tz=parseFloat(document.getElementById('btz').value);
+  if(!bdate){ alert('Укажите дату рождения.'); return null; }
+  if(!btime){ alert('Укажите время рождения.'); return null; }
+  if(!isFinite(lat)||!isFinite(lon)){ alert('Укажите координаты (кнопка «Найти координаты» или вручную).'); return null; }
+  if(!isFinite(tz)){ alert('Укажите часовой пояс (например, 3 для Москвы).'); return null; }
+  const [y,mo,d]=bdate.split('-').map(Number);
+  const [h,mi]=btime.split(':').map(Number);
+  return {y,mo,d,h,mi,tz,lat,lon};
+}
+
+async function computeAll(){
+  const f=readForm();
+  if(!f) return;
+  CHART=await computeChart(f.y,f.mo,f.d,f.h,f.mi,f.tz,f.lat,f.lon);
+  CHART.input=f;
+  renderActiveTab();
+}
+
+/* ── Переключение вкладок ── */
+let activeTab='nadi';
+function switchTab(name){
+  activeTab=name;
+  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.tab===name));
+  document.querySelectorAll('.tab-panel').forEach(p=>{ p.hidden = (p.id!=='panel-'+name); });
+  renderActiveTab();
+}
+function renderActiveTab(){
+  if(!CHART) return;
+  if(activeTab==='nadi')   renderNadi(CHART);
+  if(activeTab==='naksh')  renderNaksh(CHART);
+  if(activeTab==='yantra') renderYantra(CHART);
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   ВКЛАДКА 1 — НАДИ-КАРТА  (порт из quasisun/naadi)
+   Вычисления берём из общего движка; переносим таблицы достоинств,
+   NADI_DESC, построение нади-линий, южноиндийскую SVG-карту и анализ.
+   ════════════════════════════════════════════════════════════════════ */
+const SIGN_NAMES=SIGN_RU;
+const SIGN_SAN=['Meṣa','Vṛṣabha','Mithuna','Karkaṭa','Siṃha','Kanyā',
+                'Tulā','Vṛścika','Dhanuṣa','Makara','Kumbha','Mīna'];
 const SIGN_LORDS=['Ma','Ve','Me','Mo','Su','Me','Ve','Ma','Ju','Sa','Sa','Ju'];
-const SIGN_ELEM =['F','E','A','W','F','E','A','W','F','E','A','W']; // fire earth air water
+const SIGN_ELEM =['F','E','A','W','F','E','A','W','F','E','A','W'];
 
 const P_NAMES={Su:'Солнце',Mo:'Луна',Ma:'Марс',Me:'Меркурий',
                Ju:'Юпитер',Ve:'Венера',Sa:'Сатурн',Ra:'Раху',Ke:'Кету'};
 const P_SAN  ={Su:'Sūrya',Mo:'Candra',Ma:'Kuja',Me:'Budha',
                Ju:'Guru',Ve:'Śukra',Sa:'Śani',Ra:'Rāhu',Ke:'Ketu'};
 const P_COLOR={Su:'#E52B50',Mo:'#87CEEB',Ma:'#ff4040',Me:'#009B77',
-               Ju:'#D4A017',Ve:'#FADADD',Sa:'#4444AA',Ra:'#86261c',Ke:'#888888'};
+               Ju:'#D4A017',Ve:'#C77',Sa:'#4444AA',Ra:'#86261c',Ke:'#888888'};
 const P_GLYPH={Su:'☉',Mo:'☽',Ma:'♂',Me:'☿',Ju:'♃',Ve:'♀',Sa:'♄',Ra:'☊',Ke:'☋'};
 
 const OWN_SIGNS={Su:[4],Mo:[3],Ma:[0,7],Me:[2,5],Ju:[8,11],Ve:[1,6],Sa:[9,10],Ra:[],Ke:[]};
 const EXALT={Su:0,Mo:1,Ma:9,Me:5,Ju:3,Ve:11,Sa:6,Ra:2,Ke:8};
 const DEBIL={Su:6,Mo:7,Ma:3,Me:11,Ju:9,Ve:5,Sa:0,Ra:8,Ke:2};
 
-// Natural friendship table: F=friend, E=enemy, N=neutral
 const FRIEND={
   Su:{Su:'S',Mo:'F',Ma:'F',Me:'N',Ju:'F',Ve:'E',Sa:'E',Ra:'E',Ke:'E'},
   Mo:{Su:'F',Mo:'S',Ma:'N',Me:'F',Ju:'N',Ve:'N',Sa:'N',Ra:'N',Ke:'N'},
@@ -409,209 +596,135 @@ function nadiQuality(planet,sign){
   if(rel==='E') return 'enemy';
   return 'neutral';
 }
-
 const QUALITY_LABEL={own:'В своём знаке',exalt:'Экзальтация',friend:'Знак друга',
                      neutral:'Нейтральный знак',enemy:'Знак врага',debil:'Падение'};
 const QUALITY_COLOR={exalt:'#2E8B57',friend:'#66BB6A',neutral:'#C8960C',
                      enemy:'#FF8C00',debil:'#CC2200',own:'#7B5EA7'};
 
-// ═══════════════════════════════════════════════════════════════
-//  NADI PAIR DESCRIPTIONS (from classical Nadi texts)
-//  Key: sorted pair e.g. 'Su_Ju', value: {name, positive, negative, upaya}
-// ═══════════════════════════════════════════════════════════════
+// Описания нади-пар (из классических текстов нади). Ключ: 'Su_Ju' и т.п.
 const NADI_DESC = {
-  'Su_Ju': {
-    name: 'Солнце — Юпитер',
-    positive: 'Раджа-йога при трине Кету. Привлекательная внешность, богатство, мудрость. Благородные дети, известность особенно в 46–50 лет. Отец может быть учителем или наставником.',
-    negative: 'Венера между Юпитером и Солнцем ослабляет сердечность отношений, так как она враг Юпитеру.',
-    upaya: 'Поклонение Солнцу на восходе. Жертвование золота в храм в воскресенье.'
-  },
-  'Su_Mo': {
-    name: 'Солнце — Луна',
-    positive: '«Древесное молоко» — счастливая семейная жизнь, высокое положение. В 1-м доме — царский статус. В 5-м доме — удачливый сын.',
-    negative: 'При связи с Раху/Кету — нет помощи от родителей. Эмоции преобладают над разумом.',
-    upaya: 'Нельзя есть мясо — укорачивает жизнь. Развивать интуицию и прислушиваться к ней.'
-  },
-  'Su_Ve': {
-    name: 'Солнце — Венера',
-    positive: '50% блага, 50% сложностей. Польза от подруг и отца, хорошая семейная жизнь, богатое наследство от родственниц.',
-    negative: 'Солнце в 12-м доме от Венеры — человек не может копить деньги. Жизнь отца короткая. Слабое здоровье у мужчин.',
-    upaya: 'Женщина должна носить золотой браслет на правой руке. Жертвовать ячмень в храм.'
-  },
-  'Su_Ma': {
-    name: 'Солнце — Марс',
-    positive: '«Собственность предков». Долгая жизнь, победа над врагами. Марс во 2-м от Солнца — человек всегда успевает делать дела.',
-    negative: 'Марс во Льве — внезапная потеря брата. При Мангалик-доше — много обмана и препятствий.',
-    upaya: 'Нельзя драться — есть риск для жизни. Беречь зрение.'
-  },
-  'Su_Me': {
-    name: 'Солнце — Меркурий',
-    positive: '«Государственная служба». Храбрость, большая удача, высокий статус. Долгая жизнь, литературный талант. Один из детей может осесть за рубежом.',
-    negative: 'При влиянии Сатурна — риск проиграть деньги в суде. При Раху и Венере — плохой характер, неверность.',
-    upaya: 'Носить золотые украшения.'
-  },
-  'Su_Sa': {
-    name: 'Солнце — Сатурн',
-    positive: '«Крутящаяся юла». Питри Доша. Солнце в 3-м от Сатурна — влияние в правительстве. Хорошее Солнце нейтрализует Сатурн.',
-    negative: 'Короткая жизнь отца. Много упорного труда при слабом Солнце. Трудно самореализоваться при оппозиции.',
-    upaya: 'Носить медную заколку с золотом и красным кораллом. Пост по воскресеньям. Поминание предков (шрадха).'
-  },
-  'Su_Ra': {
-    name: 'Солнце — Раху',
-    positive: '—',
-    negative: '«Король с отрубленной головой». Плохая карма. Нет помощи от отца, проблемы на службе, кража и риск пожара. Слабое зрение, подверженность зависимостям.',
-    upaya: 'Во время солнечного затмения бросать в реку кокос, миндаль, кунжут, семена горчицы. Пакет ячменя в дальний угол квартиры.'
-  },
-  'Su_Ke': {
-    name: 'Солнце — Кету',
-    positive: 'Кету в 5-м — чего ни желаешь, скорее всего превзойдёшь ожидания.',
-    negative: '«Солнце в тени». Нет помощи от родителей, пустые поездки, тусклая судьба. Склонность к аллергии, болезни стоп.',
-    upaya: 'Во время затмения бросать в реку кокос, миндаль, кунжут, семена горчицы и творог. Не слушать чужих советов.'
-  },
-  'Mo_Ju': {
-    name: 'Луна — Юпитер',
-    positive: 'Шива-Шанкара йога. Благотворная судьба, комфорт, мудрая мать, наследство от матери, богатые родители. Чем сильнее Луна — тем лучше нади.',
-    negative: 'Чем хуже Луна — тем хуже нади. При слабой Луне все результаты ослабевают.',
-    upaya: 'Поклонение Господу Шиве. Укрепление Луны: носить жемчуг, пить молоко утром.'
-  },
-  'Mo_Ve': {
-    name: 'Луна — Венера',
-    positive: 'Счастье и комфорт. Муж будет любить. Высокая чувствительность и красота. Есть творог — рекомендуется.',
-    negative: 'Венера и Луна могут уничтожить все йоги. Луна в трине к Венере — жена обманщица. Оппозиция — потеря матери до брака.',
-    upaya: 'Комбинация требует баланса: не допускать излишней чувствительности. Молитва Лакшми.'
-  },
-  'Mo_Ma': {
-    name: 'Луна — Марс',
-    positive: 'Денежное изобилие при восходящей Луне. Марс в Раке — человек купит дом. Марс в Овне улучшает Луну в Скорпионе.',
-    negative: 'При плохом Марсе — жадность, позор, риск сердечных заболеваний и аварий. В паривартхане — плохое здоровье матери.',
-    upaya: 'Избегать поспешных решений. Медитация для укрощения импульсивности.'
-  },
-  'Mo_Me': {
-    name: 'Луна — Меркурий',
-    positive: '«Речная вода». При хорошем Меркурии — хорошие результаты. Влияние Юпитера улучшает нади.',
-    negative: 'Обмен Луны и Меркурия — «больная слава». При влиянии Кету — проблемы со здоровьем, эпилепсия.',
-    upaya: 'Жертвовать на алтарь фенхель, сахар, семена горчицы.'
-  },
-  'Mo_Sa': {
-    name: 'Луна — Сатурн',
-    positive: 'Луна во 2-м от Сатурна — друзья среди химиков и учёных. До 34 лет сложно, после — улучшение.',
-    negative: '«Кислое молоко». Матри Доша. Несчастливая семейная жизнь, плохие отношения с мамой, истеричность, проблемы со зрением.',
-    upaya: 'Пить воду с лимоном перед важным делом. Поклонение Шиве. Держать финики в железном ящике. Нельзя вести распутный образ жизни.'
-  },
-  'Mo_Ra': {
-    name: 'Луна — Раху',
-    positive: 'При хорошем Сатурне нади улучшается.',
-    negative: 'Частичное лунное затмение. Бедность, унижения, судебные процессы, нерешительность. Проблемы у братьев и сестёр.',
-    upaya: 'Во время лунного затмения бросать в реку кокос, миндаль, кунжут. Нагреть тонкую золотую проволоку, опустить в молоко, выпить. Упайи для Меркурия.'
-  },
-  'Mo_Ke': {
-    name: 'Луна — Кету',
-    positive: 'Мать религиозна.',
-    negative: '«Слепая лошадь». Плохая судьба, дурная слава матери, слабое здоровье матери. Подагра, пневмония.',
-    upaya: 'Носить серебряный браслет. Не посещать общественные туалеты. Не пить молоко по ночам.'
-  },
-  'Ve_Ju': {
-    name: 'Венера — Юпитер',
-    positive: 'Венера в 12-м от Юпитера в мужской карте — жена из прошлой жизни, мужчина не оставит жену. Сильная привязанность.',
-    negative: 'Юпитер и Венера в 6/8 — временное расставание с женой. Несчастливая семейная жизнь. Проблемы от женщин.',
-    upaya: 'Уважение к женщинам в семье. Молитва Лакшми по пятницам.'
-  },
-  'Ve_Ma': {
-    name: 'Венера — Марс',
-    positive: '«Хлебопечка». Богатая жизнь, хорошие манеры, храбрость. Обмен Венеры и Марса даёт привлекательную внешность.',
-    negative: 'В мужской карте — слабое здоровье жены.',
-    upaya: 'Жена должна носить серебряный браслет, покрытый красной краской.'
-  },
-  'Ve_Me': {
-    name: 'Венера — Меркурий',
-    positive: '«Водяная мельница». Хорошее образование, работа на государство, издательский бизнес, музыкальное образование. Удовольствие от своей жены.',
-    negative: 'Меркурий с Венерой в мужской карте — риск любовницы. Обмен — жена и любовница одновременно. В 12-м доме — плохая семейная жизнь.',
-    upaya: 'Молитва Сарасвати. Развивать честность в отношениях.'
-  },
-  'Ve_Sa': {
-    name: 'Венера — Сатурн',
-    positive: '«Чёрный перец и масло гхи». Если Венера сильнее — муж будет обеспечивать. Одновременная женитьба и смена работы. В Тельце — богатая личность.',
-    negative: 'При плохом Сатурне — трудная семейная жизнь, лень, большие траты. Возможна импотенция/фригидность.',
-    upaya: 'Улучшать планету — управителя дома, где стоит Венера.'
-  },
-  'Ve_Ra': {
-    name: 'Венера — Раху',
-    positive: '—',
-    negative: '«Тёмная буря». Упрямая и хитрая жена. Слабое здоровье, геморрой, плохая семейная жизнь, денежные потери.',
-    upaya: 'Держать дома рис, омытый молоком с серебром. Носить серебряное кольцо. Закопать медную монету в пятницу.'
-  },
-  'Ve_Ke': {
-    name: 'Венера — Кету',
-    positive: 'Сиддхи в мантра-шастре или занятие медициной.',
-    negative: 'Не покупать уже построенную недвижимость. Ментальные проблемы у супруги. Расточительность, бесплодие или больные дети.',
-    upaya: 'Упайи для Юпитера. Молитва Ганеше.'
-  },
-  // Remaining pairs — general principles
-  'Ma_Ju': {
-    name: 'Марс — Юпитер',
-    positive: 'Сильная раджа-йога, мужество и мудрость в сочетании. Успех в военной или юридической карьере. Защита от врагов.',
-    negative: 'При поражении — конфликт между действием и законом. Чрезмерная агрессия.',
-    upaya: 'Молитва Хануману по вторникам.'
-  },
-  'Ma_Sa': {
-    name: 'Марс — Сатурн',
-    positive: 'Железная воля, исключительная работоспособность. Успех в строительстве, горном деле, инженерии.',
-    negative: 'Жестокость, несчастные случаи, задержки в делах. Риск хирургических операций.',
-    upaya: 'Зажигать лампаду в субботу. Кормить бездомных по субботам.'
-  },
-  'Ma_Me': {
-    name: 'Марс — Меркурий',
-    positive: 'Технический ум, успех в точных науках, IT, инженерии. Острый и быстрый интеллект.',
-    negative: 'Резкость в словах, споры. Риск нервных расстройств. Меркурий враг Марсу.',
-    upaya: 'Практика молчания (мауна) один день в неделю.'
-  },
-  'Ju_Sa': {
-    name: 'Юпитер — Сатурн',
-    positive: 'Глубокая мудрость, приходящая через испытания. Успех в зрелом возрасте. Юрист, судья, философ.',
-    negative: 'Конфликт между расширением (Юпитер) и ограничением (Сатурн). Медленный рост, разочарования.',
-    upaya: 'Служение учителям и старцам. Жертвование книг или еды в четверг и субботу.'
-  },
-  'Ju_Me': {
-    name: 'Юпитер — Меркурий',
-    positive: 'Блестящий интеллект и красноречие. Учёный, писатель, профессор. Успех в торговле и образовании.',
-    negative: 'Меркурий враг Юпитеру — внутренний конфликт между верой и логикой.',
-    upaya: 'Изучение священных текстов. Медитация на мантру Гуру.'
-  },
-  'Ra_Sa': {
-    name: 'Раху — Сатурн',
-    positive: 'При хорошем Сатурне — нади улучшается. Нестандартное мышление плюс дисциплина.',
-    negative: 'Хроническое несчастье, препятствия, изоляция. Кармические долги накапливаются.',
-    upaya: 'Молитва Шани в субботу. Носить тёмно-синий сапфир только после проверки у астролога.'
-  },
-  'Ke_Ju': {
-    name: 'Кету — Юпитер',
-    positive: 'Глубокая духовность, мокша-карака. Мудрость прошлых жизней. Успех в духовных практиках и целительстве.',
-    negative: 'Отчуждённость от материального. Трудности с детьми.',
-    upaya: 'Молитва Ганеше. Пост в четверг.'
-  },
+  'Su_Ju': {name:'Солнце — Юпитер',
+    positive:'Раджа-йога при трине Кету. Привлекательная внешность, богатство, мудрость. Благородные дети, известность особенно в 46–50 лет. Отец может быть учителем или наставником.',
+    negative:'Венера между Юпитером и Солнцем ослабляет сердечность отношений, так как она враг Юпитеру.',
+    upaya:'Поклонение Солнцу на восходе. Жертвование золота в храм в воскресенье.'},
+  'Su_Mo': {name:'Солнце — Луна',
+    positive:'«Древесное молоко» — счастливая семейная жизнь, высокое положение. В 1-м доме — царский статус. В 5-м доме — удачливый сын.',
+    negative:'При связи с Раху/Кету — нет помощи от родителей. Эмоции преобладают над разумом.',
+    upaya:'Нельзя есть мясо — укорачивает жизнь. Развивать интуицию и прислушиваться к ней.'},
+  'Su_Ve': {name:'Солнце — Венера',
+    positive:'50% блага, 50% сложностей. Польза от подруг и отца, хорошая семейная жизнь, богатое наследство от родственниц.',
+    negative:'Солнце в 12-м доме от Венеры — человек не может копить деньги. Жизнь отца короткая. Слабое здоровье у мужчин.',
+    upaya:'Женщина должна носить золотой браслет на правой руке. Жертвовать ячмень в храм.'},
+  'Su_Ma': {name:'Солнце — Марс',
+    positive:'«Собственность предков». Долгая жизнь, победа над врагами. Марс во 2-м от Солнца — человек всегда успевает делать дела.',
+    negative:'Марс во Льве — внезапная потеря брата. При Мангалик-доше — много обмана и препятствий.',
+    upaya:'Нельзя драться — есть риск для жизни. Беречь зрение.'},
+  'Su_Me': {name:'Солнце — Меркурий',
+    positive:'«Государственная служба». Храбрость, большая удача, высокий статус. Долгая жизнь, литературный талант. Один из детей может осесть за рубежом.',
+    negative:'При влиянии Сатурна — риск проиграть деньги в суде. При Раху и Венере — плохой характер, неверность.',
+    upaya:'Носить золотые украшения.'},
+  'Su_Sa': {name:'Солнце — Сатурн',
+    positive:'«Крутящаяся юла». Питри Доша. Солнце в 3-м от Сатурна — влияние в правительстве. Хорошее Солнце нейтрализует Сатурн.',
+    negative:'Короткая жизнь отца. Много упорного труда при слабом Солнце. Трудно самореализоваться при оппозиции.',
+    upaya:'Носить медную заколку с золотом и красным кораллом. Пост по воскресеньям. Поминание предков (шрадха).'},
+  'Su_Ra': {name:'Солнце — Раху',
+    positive:'—',
+    negative:'«Король с отрубленной головой». Плохая карма. Нет помощи от отца, проблемы на службе, кража и риск пожара. Слабое зрение, подверженность зависимостям.',
+    upaya:'Во время солнечного затмения бросать в реку кокос, миндаль, кунжут, семена горчицы. Пакет ячменя в дальний угол квартиры.'},
+  'Su_Ke': {name:'Солнце — Кету',
+    positive:'Кету в 5-м — чего ни желаешь, скорее всего превзойдёшь ожидания.',
+    negative:'«Солнце в тени». Нет помощи от родителей, пустые поездки, тусклая судьба. Склонность к аллергии, болезни стоп.',
+    upaya:'Во время затмения бросать в реку кокос, миндаль, кунжут, семена горчицы и творог. Не слушать чужих советов.'},
+  'Mo_Ju': {name:'Луна — Юпитер',
+    positive:'Шива-Шанкара йога. Благотворная судьба, комфорт, мудрая мать, наследство от матери, богатые родители. Чем сильнее Луна — тем лучше нади.',
+    negative:'Чем хуже Луна — тем хуже нади. При слабой Луне все результаты ослабевают.',
+    upaya:'Поклонение Господу Шиве. Укрепление Луны: носить жемчуг, пить молоко утром.'},
+  'Mo_Ve': {name:'Луна — Венера',
+    positive:'Счастье и комфорт. Муж будет любить. Высокая чувствительность и красота. Есть творог — рекомендуется.',
+    negative:'Венера и Луна могут уничтожить все йоги. Луна в трине к Венере — жена обманщица. Оппозиция — потеря матери до брака.',
+    upaya:'Комбинация требует баланса: не допускать излишней чувствительности. Молитва Лакшми.'},
+  'Mo_Ma': {name:'Луна — Марс',
+    positive:'Денежное изобилие при восходящей Луне. Марс в Раке — человек купит дом. Марс в Овне улучшает Луну в Скорпионе.',
+    negative:'При плохом Марсе — жадность, позор, риск сердечных заболеваний и аварий. В паривартхане — плохое здоровье матери.',
+    upaya:'Избегать поспешных решений. Медитация для укрощения импульсивности.'},
+  'Mo_Me': {name:'Луна — Меркурий',
+    positive:'«Речная вода». При хорошем Меркурии — хорошие результаты. Влияние Юпитера улучшает нади.',
+    negative:'Обмен Луны и Меркурия — «больная слава». При влиянии Кету — проблемы со здоровьем, эпилепсия.',
+    upaya:'Жертвовать на алтарь фенхель, сахар, семена горчицы.'},
+  'Mo_Sa': {name:'Луна — Сатурн',
+    positive:'Луна во 2-м от Сатурна — друзья среди химиков и учёных. До 34 лет сложно, после — улучшение.',
+    negative:'«Кислое молоко». Матри Доша. Несчастливая семейная жизнь, плохие отношения с мамой, истеричность, проблемы со зрением.',
+    upaya:'Пить воду с лимоном перед важным делом. Поклонение Шиве. Держать финики в железном ящике. Нельзя вести распутный образ жизни.'},
+  'Mo_Ra': {name:'Луна — Раху',
+    positive:'При хорошем Сатурне нади улучшается.',
+    negative:'Частичное лунное затмение. Бедность, унижения, судебные процессы, нерешительность. Проблемы у братьев и сестёр.',
+    upaya:'Во время лунного затмения бросать в реку кокос, миндаль, кунжут. Нагреть тонкую золотую проволоку, опустить в молоко, выпить. Упайи для Меркурия.'},
+  'Mo_Ke': {name:'Луна — Кету',
+    positive:'Мать религиозна.',
+    negative:'«Слепая лошадь». Плохая судьба, дурная слава матери, слабое здоровье матери. Подагра, пневмония.',
+    upaya:'Носить серебряный браслет. Не посещать общественные туалеты. Не пить молоко по ночам.'},
+  'Ve_Ju': {name:'Венера — Юпитер',
+    positive:'Венера в 12-м от Юпитера в мужской карте — жена из прошлой жизни, мужчина не оставит жену. Сильная привязанность.',
+    negative:'Юпитер и Венера в 6/8 — временное расставание с женой. Несчастливая семейная жизнь. Проблемы от женщин.',
+    upaya:'Уважение к женщинам в семье. Молитва Лакшми по пятницам.'},
+  'Ve_Ma': {name:'Венера — Марс',
+    positive:'«Хлебопечка». Богатая жизнь, хорошие манеры, храбрость. Обмен Венеры и Марса даёт привлекательную внешность.',
+    negative:'В мужской карте — слабое здоровье жены.',
+    upaya:'Жена должна носить серебряный браслет, покрытый красной краской.'},
+  'Ve_Me': {name:'Венера — Меркурий',
+    positive:'«Водяная мельница». Хорошее образование, работа на государство, издательский бизнес, музыкальное образование. Удовольствие от своей жены.',
+    negative:'Меркурий с Венерой в мужской карте — риск любовницы. Обмен — жена и любовница одновременно. В 12-м доме — плохая семейная жизнь.',
+    upaya:'Молитва Сарасвати. Развивать честность в отношениях.'},
+  'Ve_Sa': {name:'Венера — Сатурн',
+    positive:'«Чёрный перец и масло гхи». Если Венера сильнее — муж будет обеспечивать. Одновременная женитьба и смена работы. В Тельце — богатая личность.',
+    negative:'При плохом Сатурне — трудная семейная жизнь, лень, большие траты. Возможна импотенция/фригидность.',
+    upaya:'Улучшать планету — управителя дома, где стоит Венера.'},
+  'Ve_Ra': {name:'Венера — Раху',
+    positive:'—',
+    negative:'«Тёмная буря». Упрямая и хитрая жена. Слабое здоровье, геморрой, плохая семейная жизнь, денежные потери.',
+    upaya:'Держать дома рис, омытый молоком с серебром. Носить серебряное кольцо. Закопать медную монету в пятницу.'},
+  'Ve_Ke': {name:'Венера — Кету',
+    positive:'Сиддхи в мантра-шастре или занятие медициной.',
+    negative:'Не покупать уже построенную недвижимость. Ментальные проблемы у супруги. Расточительность, бесплодие или больные дети.',
+    upaya:'Упайи для Юпитера. Молитва Ганеше.'},
+  'Ma_Ju': {name:'Марс — Юпитер',
+    positive:'Сильная раджа-йога, мужество и мудрость в сочетании. Успех в военной или юридической карьере. Защита от врагов.',
+    negative:'При поражении — конфликт между действием и законом. Чрезмерная агрессия.',
+    upaya:'Молитва Хануману по вторникам.'},
+  'Ma_Sa': {name:'Марс — Сатурн',
+    positive:'Железная воля, исключительная работоспособность. Успех в строительстве, горном деле, инженерии.',
+    negative:'Жестокость, несчастные случаи, задержки в делах. Риск хирургических операций.',
+    upaya:'Зажигать лампаду в субботу. Кормить бездомных по субботам.'},
+  'Ma_Me': {name:'Марс — Меркурий',
+    positive:'Технический ум, успех в точных науках, IT, инженерии. Острый и быстрый интеллект.',
+    negative:'Резкость в словах, споры. Риск нервных расстройств. Меркурий враг Марсу.',
+    upaya:'Практика молчания (мауна) один день в неделю.'},
+  'Ju_Sa': {name:'Юпитер — Сатурн',
+    positive:'Глубокая мудрость, приходящая через испытания. Успех в зрелом возрасте. Юрист, судья, философ.',
+    negative:'Конфликт между расширением (Юпитер) и ограничением (Сатурн). Медленный рост, разочарования.',
+    upaya:'Служение учителям и старцам. Жертвование книг или еды в четверг и субботу.'},
+  'Ju_Me': {name:'Юпитер — Меркурий',
+    positive:'Блестящий интеллект и красноречие. Учёный, писатель, профессор. Успех в торговле и образовании.',
+    negative:'Меркурий враг Юпитеру — внутренний конфликт между верой и логикой.',
+    upaya:'Изучение священных текстов. Медитация на мантру Гуру.'},
+  'Ra_Sa': {name:'Раху — Сатурн',
+    positive:'При хорошем Сатурне — нади улучшается. Нестандартное мышление плюс дисциплина.',
+    negative:'Хроническое несчастье, препятствия, изоляция. Кармические долги накапливаются.',
+    upaya:'Молитва Шани в субботу. Носить тёмно-синий сапфир только после проверки у астролога.'},
+  'Ke_Ju': {name:'Кету — Юпитер',
+    positive:'Глубокая духовность, мокша-карака. Мудрость прошлых жизней. Успех в духовных практиках и целительстве.',
+    negative:'Отчуждённость от материального. Трудности с детьми.',
+    upaya:'Молитва Ганеше. Пост в четверг.'},
 };
-
-// Get Nadi description for a planet-lord pair
 function getNadiDesc(planet, lord){
   const key1=planet+'_'+lord, key2=lord+'_'+planet;
   return NADI_DESC[key1] || NADI_DESC[key2] || null;
 }
 
-// ═══════════════════════════════════════════════════════════════
-//  SOUTH INDIAN CHART RENDERING (SVG)
-//  Fixed signs: Pi Ar Ta Ge / Aq .. .. Ca / Cp .. .. Le / Sg Sc Li Vi
-// ═══════════════════════════════════════════════════════════════
-// sign → [col, row]  (0=Aries)
-const SIGN_POS=[
-  [1,0],[2,0],[3,0],[3,1],[3,2],[3,3],
-  [2,3],[1,3],[0,3],[0,2],[0,1],[0,0]
-];
+// Южноиндийская карта (SVG). sign → [col,row], 0=Овен
+const SIGN_POS=[[1,0],[2,0],[3,0],[3,1],[3,2],[3,3],[2,3],[1,3],[0,3],[0,2],[0,1],[0,0]];
 const CELL=88, PAD=4, TOTAL=4*CELL+2*PAD;
-
-function cellCenter(sign){
-  const[c,r]=SIGN_POS[sign];
-  return[PAD+c*CELL+CELL/2, PAD+r*CELL+CELL/2];
-}
+function cellCenter(sign){const[c,r]=SIGN_POS[sign];return[PAD+c*CELL+CELL/2, PAD+r*CELL+CELL/2];}
 
 function buildNadiLines(positions){
   const lines=[];
@@ -620,7 +733,7 @@ function buildNadiLines(positions){
     const lon=positions[p].lon;
     const sign=Math.floor(lon/30);
     const q=nadiQuality(p,sign);
-    if(q==='own') continue; // No line — at home
+    if(q==='own') continue;
     const lord=SIGN_LORDS[sign];
     const lordSign=Math.floor(positions[lord].lon/30);
     lines.push({from:sign, to:lordSign, planet:p, lord, quality:q,
@@ -629,154 +742,96 @@ function buildNadiLines(positions){
   }
   return lines;
 }
-
 function countIslands(nadiLines){
   const counts={};
   for(let i=0;i<12;i++) counts[i]=[];
-  for(const l of nadiLines){
-    counts[l.toSign].push(l);
-  }
+  for(const l of nadiLines) counts[l.toSign].push(l);
   return counts;
 }
-
 function renderSvg(positions, nadiLines, lagnaSign){
-  const svg=[];
-  const W=TOTAL, H=TOTAL;
-
-  // Background
+  const svg=[]; const W=TOTAL, H=TOTAL;
   svg.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" id="chartSvg" style="display:block">`);
-
-  // Defs: filters
   svg.push(`<defs>
     <filter id="glow"><feGaussianBlur stdDeviation="3" result="blur"/>
       <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-    <filter id="islandGlow"><feGaussianBlur stdDeviation="5" result="blur"/>
-      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-    <pattern id="papyrus" patternUnits="userSpaceOnUse" width="4" height="4">
-      <rect width="4" height="4" fill="#F5ECD7"/>
-      <path d="M0 2 Q2 1 4 2" stroke="rgba(184,134,11,.07)" stroke-width=".5" fill="none"/>
-    </pattern>
   </defs>`);
-
-  // Main background
-  svg.push(`<rect width="${W}" height="${H}" fill="#F0E4C8" rx="2"/>`);
-
-  // Island counts
+  svg.push(`<rect width="${W}" height="${H}" fill="#faf4ea" rx="2"/>`);
   const islands=countIslands(nadiLines);
-
-  // Draw 12 sign cells
   for(let s=0;s<12;s++){
     const[col,row]=SIGN_POS[s];
     const x=PAD+col*CELL, y=PAD+row*CELL;
     const isLagna=s===lagnaSign;
     const islandCount=islands[s].length;
     const isIsland=islandCount>=3;
-
-    // Cell background
-    let fill='#F5ECD7';
-    if(isLagna) fill='rgba(193,68,14,.12)';
-    if(isIsland) fill='rgba(212,160,11,.18)';
-    svg.push(`<rect x="${x}" y="${y}" width="${CELL}" height="${CELL}" fill="${fill}" stroke="#B8860B" stroke-width="${isLagna?2:1}"/>`);
-
-    // Lagna diagonal marks
+    let fill='#ffffff';
+    if(isLagna) fill='#fce4da';
+    if(isIsland) fill='#fdeadf';
+    svg.push(`<rect x="${x}" y="${y}" width="${CELL}" height="${CELL}" fill="${fill}" stroke="#ef5024" stroke-opacity="${isLagna?0.85:0.3}" stroke-width="${isLagna?2:1}"/>`);
     if(isLagna){
-      svg.push(`<line x1="${x}" y1="${y}" x2="${x+16}" y2="${y+16}" stroke="#C1440E" stroke-width="1.5" opacity=".6"/>`);
-      svg.push(`<line x1="${x+CELL}" y1="${y}" x2="${x+CELL-16}" y2="${y+16}" stroke="#C1440E" stroke-width="1.5" opacity=".6"/>`);
+      svg.push(`<line x1="${x}" y1="${y}" x2="${x+16}" y2="${y+16}" stroke="#df2227" stroke-width="1.5" opacity=".6"/>`);
+      svg.push(`<line x1="${x+CELL}" y1="${y}" x2="${x+CELL-16}" y2="${y+16}" stroke="#df2227" stroke-width="1.5" opacity=".6"/>`);
     }
-
-    // Island glow
     if(isIsland){
-      svg.push(`<rect x="${x+1}" y="${y+1}" width="${CELL-2}" height="${CELL-2}" fill="none" stroke="#D4A017" stroke-width="2.5" opacity=".5" filter="url(#glow)"/>`);
-      svg.push(`<text x="${x+CELL-5}" y="${y+11}" font-size="9" font-family="serif" fill="#B8860B" text-anchor="end" opacity=".9">◆</text>`);
+      svg.push(`<rect x="${x+1}" y="${y+1}" width="${CELL-2}" height="${CELL-2}" fill="none" stroke="#ef5024" stroke-width="2.5" opacity=".55" filter="url(#glow)"/>`);
+      svg.push(`<text x="${x+CELL-5}" y="${y+11}" font-size="9" font-family="serif" fill="#ef5024" text-anchor="end" opacity=".9">◆</text>`);
     }
-
-    // Sign number (small, top-left)
-    svg.push(`<text x="${x+4}" y="${y+11}" font-size="8" font-family="'EB Garamond',serif" fill="rgba(92,51,23,.5)">${s+1}</text>`);
-
-    // Sign name
+    svg.push(`<text x="${x+4}" y="${y+11}" font-size="8" font-family="serif" fill="#6b625c" opacity=".75">${s+1}</text>`);
     const shortName=['Ов','Тл','Бл','Ра','Ле','Де','Вс','Ск','Стр','Кз','Вд','Ры'][s];
-    svg.push(`<text x="${x+CELL/2}" y="${y+CELL-6}" font-size="9" font-family="'Cinzel',serif" fill="rgba(139,46,8,.55)" text-anchor="middle" font-style="italic">${shortName}</text>`);
+    svg.push(`<text x="${x+CELL/2}" y="${y+CELL-6}" font-size="9" font-family="serif" fill="#6b625c" text-anchor="middle" font-style="italic" opacity=".85">${shortName}</text>`);
   }
-
-  // Center info area
   const cx=PAD+CELL, cy=PAD+CELL;
-  svg.push(`<rect x="${cx}" y="${cy}" width="${2*CELL}" height="${2*CELL}" fill="#EFE0C0" stroke="#B8860B" stroke-width="1.5"/>`);
-  svg.push(`<text x="${cx+CELL}" y="${cy+CELL-14}" font-size="14" font-family="serif" fill="#C1440E" text-anchor="middle">ॐ</text>`);
-  svg.push(`<text x="${cx+CELL}" y="${cy+CELL+8}" font-size="8" font-family="'Cinzel',serif" fill="#8B2E08" text-anchor="middle" letter-spacing="1">JYOTIṢA</text>`);
-  svg.push(`<text x="${cx+CELL}" y="${cy+CELL+22}" font-size="7" font-family="'Cinzel',serif" fill="#B8860B" text-anchor="middle" letter-spacing="1">NĀḌĪ</text>`);
-
-  // Draw Nadi lines (behind planets)
-  // Group by quality to layer them properly
+  svg.push(`<rect x="${cx}" y="${cy}" width="${2*CELL}" height="${2*CELL}" fill="#faf4ea" stroke="#ef5024" stroke-opacity=".5" stroke-width="1.5"/>`);
+  svg.push(`<text x="${cx+CELL}" y="${cy+CELL-14}" font-size="14" font-family="serif" fill="#df2227" text-anchor="middle">ॐ</text>`);
+  svg.push(`<text x="${cx+CELL}" y="${cy+CELL+8}" font-size="8" font-family="serif" fill="#df2227" text-anchor="middle" letter-spacing="1">JYOTIṢA</text>`);
+  svg.push(`<text x="${cx+CELL}" y="${cy+CELL+22}" font-size="7" font-family="serif" fill="#ef5024" text-anchor="middle" letter-spacing="1">NĀḌĪ</text>`);
   const lineOrder=['debil','enemy','neutral','friend','exalt'];
   for(const q of lineOrder){
     for(const l of nadiLines){
       if(l.quality!==q) continue;
       const[x1,y1]=cellCenter(l.fromSign);
       const[x2,y2]=cellCenter(l.toSign);
-      if(l.fromSign===l.toSign) continue; // same cell
+      if(l.fromSign===l.toSign) continue;
       const color=QUALITY_COLOR[q];
       const alpha=q==='debil'||q==='exalt'?'0.75':'0.55';
       const sw=q==='exalt'?2.5:q==='debil'?2.5:1.8;
-      // Curved line (quadratic bezier with midpoint offset)
       const mx=(x1+x2)/2, my=(y1+y2)/2;
       const dx=x2-x1, dy=y2-y1;
       const cx2=mx-dy*0.15, cy2=my+dx*0.15;
       svg.push(`<path d="M${x1},${y1} Q${cx2},${cy2} ${x2},${y2}" stroke="${color}" stroke-width="${sw}" fill="none" opacity="${alpha}" stroke-dasharray="${q==='neutral'?'5,3':''}" stroke-linecap="round"/>`);
-      // Arrow head
-      const angle=Math.atan2(y2-cy2,x2-cx2);
-      const ah=6;
+      const angle=Math.atan2(y2-cy2,x2-cx2); const ah=6;
       svg.push(`<polygon points="${x2},${y2} ${x2-ah*Math.cos(angle-0.4)},${y2-ah*Math.sin(angle-0.4)} ${x2-ah*Math.cos(angle+0.4)},${y2-ah*Math.sin(angle+0.4)}" fill="${color}" opacity="${alpha}"/>`);
     }
   }
-
-  // Draw planets in their sign cells
-  // Collect planets per sign
   const bySign={};
   const pList=['Su','Mo','Ma','Me','Ju','Ve','Sa','Ra','Ke'];
-  for(const p of pList){
-    const s=Math.floor(positions[p].lon/30);
-    if(!bySign[s]) bySign[s]=[];
-    bySign[s].push(p);
-  }
-  // Lagna marker
+  for(const p of pList){ const s=Math.floor(positions[p].lon/30); if(!bySign[s]) bySign[s]=[]; bySign[s].push(p); }
   if(!bySign[lagnaSign]) bySign[lagnaSign]=[];
-
   for(const [signStr,planets] of Object.entries(bySign)){
     const s=parseInt(signStr);
     const[col,row]=SIGN_POS[s];
     const bx=PAD+col*CELL, by=PAD+row*CELL;
     const isLagna=s===lagnaSign;
-
-    // Layout planets in cell
     let py=by+18;
     for(const p of planets){
       const lon=positions[p].lon;
-      const dg=Math.floor(lon%30);
-      const mn=Math.floor((lon%30-dg)*60);
+      const dg=Math.floor(lon%30), mn=Math.floor((lon%30-dg)*60);
       const col2=P_COLOR[p];
-      svg.push(`<text x="${bx+CELL/2}" y="${py}" font-size="11" font-family="'EB Garamond',serif" fill="${col2}" text-anchor="middle" font-weight="bold">${P_GLYPH[p]}</text>`);
-      svg.push(`<text x="${bx+CELL/2}" y="${py+10}" font-size="7.5" font-family="'Cinzel',serif" fill="${col2}" text-anchor="middle">${dg}°${mn>9?mn:'0'+mn}'</text>`);
+      svg.push(`<text x="${bx+CELL/2}" y="${py}" font-size="11" font-family="serif" fill="${col2}" text-anchor="middle" font-weight="bold">${P_GLYPH[p]}</text>`);
+      svg.push(`<text x="${bx+CELL/2}" y="${py+10}" font-size="7.5" font-family="serif" fill="${col2}" text-anchor="middle">${dg}°${mn>9?mn:'0'+mn}'</text>`);
       py+=22;
     }
     if(isLagna && planets.length===0){
-      svg.push(`<text x="${bx+CELL/2}" y="${by+CELL/2}" font-size="9" font-family="'Cinzel',serif" fill="#C1440E" text-anchor="middle">Лагна</text>`);
+      svg.push(`<text x="${bx+CELL/2}" y="${by+CELL/2}" font-size="9" font-family="serif" fill="#df2227" text-anchor="middle">Лагна</text>`);
     }
   }
-
   svg.push('</svg>');
   return svg.join('\n');
 }
 
-// ═══════════════════════════════════════════════════════════════
-//  RENDER ANALYSIS PANEL
-// ═══════════════════════════════════════════════════════════════
 function renderAnalysis(positions, nadiLines, lagnaSign, dateStr, city){
   const islands=countIslands(nadiLines);
-  const bigIslands=Object.entries(islands).filter(([s,ls])=>ls.length>=3)
-                         .sort((a,b)=>b[1].length-a[1].length);
+  const bigIslands=Object.entries(islands).filter(([s,ls])=>ls.length>=3).sort((a,b)=>b[1].length-a[1].length);
   const pList=['Su','Mo','Ma','Me','Ju','Ve','Sa','Ra','Ke'];
-
-  // Planet table rows
   let tableRows='';
   for(const p of pList){
     const lon=positions[p].lon;
@@ -793,40 +848,31 @@ function renderAnalysis(positions, nadiLines, lagnaSign, dateStr, city){
       <td style="color:${P_COLOR[lord]}">${q==='own'?'—':P_NAMES[lord]+' ('+SIGN_NAMES[lordSign]+')'}</td>
     </tr>`;
   }
-
-  // Nadi list
   let nadiItems='';
-  const sorted=[...nadiLines].sort((a,b)=>{
-    const order={exalt:0,friend:1,neutral:2,enemy:3,debil:4};
-    return(order[a.quality]||2)-(order[b.quality]||2);
-  });
+  const sorted=[...nadiLines].sort((a,b)=>{const order={exalt:0,friend:1,neutral:2,enemy:3,debil:4};return(order[a.quality]||2)-(order[b.quality]||2);});
   for(const l of sorted){
     const qLabel=QUALITY_LABEL[l.quality]||l.quality;
     const desc=getNadiDesc(l.planet,l.lord);
     const descHtml=desc?`
-      <div class="nadi-expand-btn" onclick="this.nextElementSibling.classList.toggle('open');this.classList.toggle('open')" style="margin-top:6px;cursor:pointer;font-size:.76rem;color:var(--go);font-family:'Cinzel',serif;letter-spacing:.08em">
+      <div class="nadi-expand-btn" onclick="this.nextElementSibling.classList.toggle('open');this.classList.toggle('open')" style="margin-top:6px;cursor:pointer;font-size:.85em;color:var(--c-red);font-weight:700;letter-spacing:.04em">
         ▸ Значение и упайи
       </div>
-      <div class="nadi-desc-body" style="display:none;margin-top:6px;padding:10px 12px;background:rgba(255,255,255,.55);border-radius:2px;border-left:2px solid ${QUALITY_COLOR[l.quality]};font-size:.82rem;line-height:1.7;color:var(--br)">
-        <div style="font-family:'Cinzel',serif;font-size:.68rem;letter-spacing:.1em;color:var(--tcd);margin-bottom:6px;text-transform:uppercase">${desc.name}</div>
-        ${desc.positive&&desc.positive!=='—'?`<div style="margin-bottom:4px"><span style="color:#2E8B57;font-weight:600">✦ Благоприятное:</span> ${desc.positive}</div>`:''}
-        ${desc.negative?`<div style="margin-bottom:4px"><span style="color:#CC2200;font-weight:600">✦ Сложности:</span> ${desc.negative}</div>`:''}
-        ${desc.upaya?`<div><span style="color:var(--go);font-weight:600">✦ Упайи:</span> ${desc.upaya}</div>`:''}
+      <div class="nadi-desc-body" style="display:none;margin-top:6px;padding:10px 12px;background:rgba(255,255,255,.7);border-radius:8px;border-left:3px solid ${QUALITY_COLOR[l.quality]};line-height:1.7;color:var(--br)">
+        <div style="font-weight:700;letter-spacing:.04em;color:var(--tcd);margin-bottom:6px;text-transform:uppercase">${desc.name}</div>
+        ${desc.positive&&desc.positive!=='—'?`<div style="margin-bottom:4px"><span style="color:#2E8B57;font-weight:700">Благоприятное:</span> ${desc.positive}</div>`:''}
+        ${desc.negative?`<div style="margin-bottom:4px"><span style="color:#CC2200;font-weight:700">Сложности:</span> ${desc.negative}</div>`:''}
+        ${desc.upaya?`<div><span style="color:var(--c-red);font-weight:700">Упайи:</span> ${desc.upaya}</div>`:''}
       </div>`:'';
     nadiItems+=`<div class="nadi-item ${l.quality}" style="flex-direction:column;align-items:stretch">
       <div style="display:flex;align-items:center;gap:8px">
-        <span style="color:${P_COLOR[l.planet]};font-weight:600;font-size:1.1rem">${P_GLYPH[l.planet]}</span>
+        <span style="color:${P_COLOR[l.planet]};font-weight:600;font-size:1.1em">${P_GLYPH[l.planet]}</span>
         <span style="flex:1"><strong>${P_NAMES[l.planet]}</strong> в ${SIGN_NAMES[l.fromSign]}
           → нади к <strong>${P_NAMES[l.lord]}</strong> (${SIGN_NAMES[l.toSign]})</span>
-        <span style="color:${QUALITY_COLOR[l.quality]};font-size:.78rem;flex-shrink:0">${qLabel}</span>
+        <span style="color:${QUALITY_COLOR[l.quality]};font-size:.85em;flex-shrink:0">${qLabel}</span>
       </div>
       ${descHtml}
     </div>`;
   }
-  // Toggle logic injected inline via onclick — add CSS for open state
-
-
-  // Islands
   let islandItems='';
   if(bigIslands.length>0){
     for(const[s,ls] of bigIslands){
@@ -836,7 +882,7 @@ function renderAnalysis(positions, nadiLines, lagnaSign, dateStr, city){
       const strength=ls.length;
       const positiveLines=ls.filter(l=>l.quality==='exalt'||l.quality==='friend').length;
       const negativeLines=ls.filter(l=>l.quality==='debil'||l.quality==='enemy').length;
-      const verdict=positiveLines>negativeLines?'💚 Благоприятный':negativeLines>positiveLines?'🔴 Напряжённый':'⚡ Смешанный';
+      const verdict=positiveLines>negativeLines?'<span style="color:#2E8B57;font-weight:700">Благоприятный</span>':negativeLines>positiveLines?'<span style="color:#CC2200;font-weight:700">Напряжённый</span>':'<span style="color:#C8960C;font-weight:700">Смешанный</span>';
       islandItems+=`<div class="island-box">
         <div class="island-name">◆ Остров: ${SIGN_NAMES[sn]} · Владыка: ${P_NAMES[lordPlanet]} · ${strength} нади</div>
         <div class="island-desc">
@@ -849,10 +895,8 @@ function renderAnalysis(positions, nadiLines, lagnaSign, dateStr, city){
       </div>`;
     }
   } else {
-    islandItems=`<div style="font-size:.88rem;color:var(--br);font-style:italic;padding:8px 0">
-      Концентрированных островов (3+ нади) в этой карте не выявлено.</div>`;
+    islandItems=`<div class="island-desc" style="padding:8px 0">Концентрированных островов (3+ нади) в этой карте не выявлено.</div>`;
   }
-
   return `
   <div class="analysis-card">
     <div class="analysis-header">
@@ -860,10 +904,10 @@ function renderAnalysis(positions, nadiLines, lagnaSign, dateStr, city){
       <div class="lagna-info">Лагна: ${SIGN_NAMES[lagnaSign]} · ${dateStr}${city?' · '+city:''}</div>
     </div>
     <div class="analysis-body">
-      <table class="planet-table">
+      <div class="table-scroll"><table class="planet-table">
         <thead><tr><th>Планета</th><th>Знак / Градус</th><th>Качество нади</th><th>Нади → к планете</th></tr></thead>
         <tbody>${tableRows}</tbody>
-      </table>
+      </table></div>
       <div class="nadi-section">
         <div class="nadi-title">Нади линии (связи знак → владыка)</div>
         <div class="nadi-list">${nadiItems}</div>
@@ -876,106 +920,418 @@ function renderAnalysis(positions, nadiLines, lagnaSign, dateStr, city){
         Система Нади-линий: планета в знаке создаёт нади к владыке этого знака ·
         цвет линии отражает качество отношений · 3+ линий в одном знаке = Остров<br>
         За подробным анализом карты:
-        <a href="https://goroskop1008.ru" target="_blank"><strong>goroskop1008.ru</strong></a>
-        · С. А. Кройцер
+        <a href="https://goroskop1008.ru" target="_blank"><strong>goroskop1008.ru</strong></a> · С. А. Кройцер
       </div>
     </div>
   </div>`;
 }
 
-// ═══════════════════════════════════════════════════════════════
-//  GEOCODING
-// ═══════════════════════════════════════════════════════════════
-async function geocode(city){
-  try{
-    const r=await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city)}&format=json&limit=1`,
-                        {headers:{'Accept-Language':'ru,en'}});
-    const d=await r.json();
-    if(d&&d.length) return{lat:parseFloat(d[0].lat),lon:parseFloat(d[0].lon)};
-  }catch(e){}
-  return null;
+// Карта позиций общего движка → ключи naadi (Su/Mo/.../La)
+function nadiPositions(chart){
+  const M={Sun:'Su',Moon:'Mo',Mars:'Ma',Mercury:'Me',Jupiter:'Ju',Venus:'Ve',Saturn:'Sa',Rahu:'Ra',Ketu:'Ke'};
+  const pos={};
+  for(const k in M) pos[M[k]]={lon:chart.pos[k]};
+  pos.La={lon:chart.pos.Lagna, label:'Лагна'};
+  return pos;
 }
-function tzFromLon(lon){
-  const tz=Math.round(lon/15);
-  const sel=document.getElementById('btz');
-  let best=null,bestDiff=Infinity;
-  for(const opt of sel.options){
-    const diff=Math.abs(parseFloat(opt.value)-tz);
-    if(diff<bestDiff){bestDiff=diff;best=opt.value}
-  }
-  return best;
+/* ── Вимшоттари даша ── */
+const DASHA_LORDS=['Ketu','Venus','Sun','Moon','Mars','Rahu','Jupiter','Saturn','Mercury'];
+const DASHA_YEARS={Ketu:7,Venus:20,Sun:6,Moon:10,Mars:7,Rahu:18,Jupiter:16,Saturn:19,Mercury:17};
+const DASHA_RU={Ketu:'Кету',Venus:'Венера',Sun:'Солнце',Moon:'Луна',Mars:'Марс',Rahu:'Раху',Jupiter:'Юпитер',Saturn:'Сатурн',Mercury:'Меркурий'};
+const VYEAR=365.25;
+function dashaSubPeriods(lord,startDay,durDays){
+  const idx=DASHA_LORDS.indexOf(lord); const out=[]; let s=startDay;
+  for(let k=0;k<9;k++){ const sub=DASHA_LORDS[(idx+k)%9]; const d=durDays*(DASHA_YEARS[sub]/120); out.push({lord:sub,startDay:s,endDay:s+d}); s+=d; }
+  return out;
+}
+function vimshottari(chart){
+  const moon=nd(chart.pos.Moon), nakSize=360/27;
+  const nakIdx=Math.floor(moon/nakSize), frac=(moon%nakSize)/nakSize, startIdx=nakIdx%9;
+  const f=chart.input;
+  const birthMs=Date.UTC(f.y,f.mo-1,f.d,f.h,f.mi)-f.tz*3600000;
+  const elapsedDays=(Date.now()-birthMs)/86400000;
+  let startDay=-frac*DASHA_YEARS[DASHA_LORDS[startIdx]]*VYEAR;
+  const mahas=[];
+  for(let k=0;k<10;k++){ const lord=DASHA_LORDS[(startIdx+k)%9]; const dur=DASHA_YEARS[lord]*VYEAR; mahas.push({lord,startDay,endDay:startDay+dur}); startDay+=dur; }
+  const maha=mahas.find(m=>elapsedDays>=m.startDay&&elapsedDays<m.endDay)||mahas[0];
+  const antars=dashaSubPeriods(maha.lord,maha.startDay,maha.endDay-maha.startDay);
+  const antar=antars.find(a=>elapsedDays>=a.startDay&&elapsedDays<a.endDay)||antars[0];
+  const prats=dashaSubPeriods(antar.lord,antar.startDay,antar.endDay-antar.startDay);
+  const prat=prats.find(p=>elapsedDays>=p.startDay&&elapsedDays<p.endDay)||prats[0];
+  const toDate=day=>{ const dt=new Date(birthMs+day*86400000); return String(dt.getUTCDate()).padStart(2,'0')+'.'+String(dt.getUTCMonth()+1).padStart(2,'0')+'.'+dt.getUTCFullYear(); };
+  return {maha,antar,prat,toDate,birthLord:DASHA_LORDS[startIdx]};
+}
+function dashaBlock(chart){
+  const v=vimshottari(chart);
+  return `<div class="nadi-block"><h3>Текущая Вимшоттари даша</h3>
+    <div class="dasha-line"><strong>Махадаша:</strong> ${DASHA_RU[v.maha.lord]} — до ${v.toDate(v.maha.endDay)}</div>
+    <div class="dasha-line"><strong>Антардаша:</strong> ${DASHA_RU[v.antar.lord]} — до ${v.toDate(v.antar.endDay)}</div>
+    <div class="dasha-line"><strong>Пратьянтара:</strong> ${DASHA_RU[v.prat.lord]} — до ${v.toDate(v.prat.endDay)}</div>
+    <p class="muted" style="margin-top:8px">Периоды по накшатре Луны при рождении (стартовый владыка — ${DASHA_RU[v.birthLord]}); 365,25 дн./год.</p>
+  </div>`;
 }
 
-// ═══════════════════════════════════════════════════════════════
-//  UI EVENTS
-// ═══════════════════════════════════════════════════════════════
-const cityEl=document.getElementById('bcity');
-const latEl=document.getElementById('blat');
-const lonEl=document.getElementById('blon');
-let lastCity='';
-
-cityEl.addEventListener('input',()=>{lastCity='';latEl.value='';lonEl.value='';});
-cityEl.addEventListener('blur',async()=>{
-  const v=cityEl.value.trim();
-  if(!v||v===lastCity) return;
-  const g=await geocode(v);
-  if(g){latEl.value=g.lat.toFixed(4);lonEl.value=g.lon.toFixed(4);
-    lastCity=v;document.getElementById('btz').value=tzFromLon(g.lon)||'3';}
-});
-
-document.getElementById('chartForm').addEventListener('submit',async e=>{
-  e.preventDefault();
-  const err=document.getElementById('errMsg');
-  err.style.display='none';
-
-  const dateVal=document.getElementById('bdate').value;
-  const timeVal=document.getElementById('btime').value;
-  const tz=parseFloat(document.getElementById('btz').value);
-  const city=cityEl.value.trim();
-
-  if(!dateVal||!timeVal){err.textContent='Введите дату и время.';err.style.display='block';return;}
-
-  let lat=parseFloat(latEl.value),lon=parseFloat(lonEl.value);
-  if((isNaN(lat)||isNaN(lon))&&city){
-    const g=await geocode(city);
-    if(!g){err.textContent='Город не найден. Введите координаты вручную.';err.style.display='block';return;}
-    lat=g.lat;lon=g.lon;latEl.value=lat.toFixed(4);lonEl.value=lon.toFixed(4);lastCity=city;
+/* ── Таткалика + Панчадха-майтри ── */
+const MAITRI_PLANETS=['Su','Mo','Ma','Me','Ju','Ve','Sa'];
+function tatkalika(aSign,bSign){ const dist=((bSign-aSign+12)%12)+1; return [2,3,4,10,11,12].includes(dist)?'F':'E'; }
+function panchadha(natural,temporal){
+  if(natural==='F') return temporal==='F'?'AM':'S';
+  if(natural==='N') return temporal==='F'?'M':'Sh';
+  if(natural==='E') return temporal==='F'?'S':'ASh';
+  return 'S';
+}
+const MAITRI_LABEL={AM:'Адхимитра — великий друг',M:'Митра — друг',S:'Сама — нейтрал',Sh:'Шатру — враг',ASh:'Адхишатру — великий враг'};
+const MAITRI_ABBR={AM:'АМ',M:'М',S:'С',Sh:'Ш',ASh:'АШ'};
+function maitriBlock(positions){
+  const sign={}; for(const p of MAITRI_PLANETS) sign[p]=Math.floor(positions[p].lon/30);
+  let rows='';
+  for(const a of MAITRI_PLANETS){
+    let cells='';
+    for(const b of MAITRI_PLANETS){
+      if(a===b){ cells+='<td class="m-self">—</td>'; continue; }
+      const pm=panchadha(FRIEND[a][b], tatkalika(sign[a],sign[b]));
+      cells+=`<td class="m-${pm.toLowerCase()}" title="${MAITRI_LABEL[pm]}">${MAITRI_ABBR[pm]}</td>`;
+    }
+    rows+=`<tr><th>${P_NAMES[a]}</th>${cells}</tr>`;
   }
-  if(isNaN(lat)||isNaN(lon)){err.textContent='Введите координаты.';err.style.display='block';return;}
+  const head=MAITRI_PLANETS.map(p=>`<th>${P_GLYPH[p]}</th>`).join('');
+  return `<div class="nadi-block"><h3>Панчадха-майтри (с таткаликой)</h3>
+    <div class="table-scroll"><table class="maitri-matrix"><thead><tr><th></th>${head}</tr></thead><tbody>${rows}</tbody></table></div>
+    <p class="muted" style="margin-top:8px">Отношение планеты в строке к планете в столбце. <strong>АМ</strong> — великий друг, <strong>М</strong> — друг, <strong>С</strong> — нейтрал, <strong>Ш</strong> — враг, <strong>АШ</strong> — великий враг. Сочетает естественную дружбу и временную (таткалика, по положению в карте).</p>
+  </div>`;
+}
 
-  const[yr,mo,dy]=dateVal.split('-').map(Number);
-  const[hr,mn]=timeVal.split(':').map(Number);
-  const utcHr=hr-tz;
-  const jd=JD(yr,mo,dy,Math.floor(utcHr),Math.floor((utcHr%1)*60),0);
+function renderNadi(chart){
+  const positions=nadiPositions(chart);
+  const lagnaSign=Math.floor(positions.La.lon/30);
+  const nadiLines=buildNadiLines(positions);
+  const svgHtml=renderSvg(positions,nadiLines,lagnaSign);
+  const f=chart.input;
+  const dateStr=`${String(f.d).padStart(2,'0')}.${String(f.mo).padStart(2,'0')}.${f.y}`;
+  const city=document.getElementById('bplace').value.trim();
+  document.getElementById('out-nadi').innerHTML=
+    `<div class="nadi-chart-wrap">${svgHtml}</div>`
+    +renderAnalysis(positions,nadiLines,lagnaSign,dateStr,city)
+    +dashaBlock(chart)
+    +maitriBlock(positions);
+}
 
-  const pos=calcPositions(jd,lat,lon,tz);
-  const lagnaSign=Math.floor(pos.La.lon/30);
-  const nadiLines=buildNadiLines(pos);
+/* ════════════════════════════════════════════════════════════════════
+   ВКЛАДКА 2 — ИМЯ ПО НАКШАТРЕ  (порт из quasisun/nakshatra_name)
+   Сидерическую долготу Луны берём из общего движка (chart.pos.Moon).
+   ════════════════════════════════════════════════════════════════════ */
+const NAKSHATRAS=[
+  {name:"Ашвини",          san:"Aśvinī",          deity:"Ашвини Кумары",  lord:"Кету",    syllables:["Чу","Че","Чо","Ла"]},
+  {name:"Бхарани",         san:"Bharaṇī",         deity:"Яма",            lord:"Венера",  syllables:["Ли","Лу","Ле","Ло"]},
+  {name:"Криттика",        san:"Kṛttikā",         deity:"Агни",           lord:"Солнце",  syllables:["А","И","У","Э"]},
+  {name:"Рохини",          san:"Rohiṇī",          deity:"Брахма",         lord:"Луна",    syllables:["О","Ва","Ви","Ву"]},
+  {name:"Мригашира",       san:"Mṛgaśirā",        deity:"Сома",           lord:"Марс",    syllables:["Ве","Во","Ка","Ки"]},
+  {name:"Ардра",           san:"Ārdrā",           deity:"Рудра",          lord:"Раху",    syllables:["Ку","Гха","Инг","Джха"]},
+  {name:"Пунарвасу",       san:"Punarvasu",       deity:"Адити",          lord:"Юпитер",  syllables:["Ке","Ко","Ха","Хи"]},
+  {name:"Пушья",           san:"Puṣya",           deity:"Брихаспати",     lord:"Сатурн",  syllables:["Ху","Хе","Хо","Да"]},
+  {name:"Ашлеша",          san:"Āśleṣā",          deity:"Сарпы",          lord:"Меркурий",syllables:["Ди","Ду","Де","До"]},
+  {name:"Магха",           san:"Maghā",           deity:"Питры",          lord:"Кету",    syllables:["Ма","Ми","Му","Ме"]},
+  {name:"Пурва Пхалгуни",  san:"Pūrva Phālgunī",  deity:"Бхага",          lord:"Венера",  syllables:["Мо","Та","Ти","Ту"]},
+  {name:"Уттара Пхалгуни", san:"Uttara Phālgunī", deity:"Арьяман",        lord:"Солнце",  syllables:["Те","То","Па","Пи"]},
+  {name:"Хаста",           san:"Hasta",           deity:"Савитр",         lord:"Луна",    syllables:["Пу","Ша","На","Тха"]},
+  {name:"Читра",           san:"Citrā",           deity:"Тваштр",         lord:"Марс",    syllables:["Пе","По","Ра","Ри"]},
+  {name:"Свати",           san:"Svātī",           deity:"Ваю",            lord:"Раху",    syllables:["Ру","Ре","Ро","Та"]},
+  {name:"Вишакха",         san:"Viśākhā",         deity:"Индра-Агни",     lord:"Юпитер",  syllables:["Ти","Ту","Те","То"]},
+  {name:"Анурадха",        san:"Anurādhā",        deity:"Митра",          lord:"Сатурн",  syllables:["На","Ни","Ну","Не"]},
+  {name:"Джйештха",        san:"Jyeṣṭhā",         deity:"Индра",          lord:"Меркурий",syllables:["Но","Я","Йи","Ю"]},
+  {name:"Мула",            san:"Mūla",            deity:"Нирритти",       lord:"Кету",    syllables:["Е","Йо","Ба","Би"]},
+  {name:"Пурва Ашадха",    san:"Pūrva Āṣāḍhā",    deity:"Апас",           lord:"Венера",  syllables:["Бу","Дха","Пха","Дха"]},
+  {name:"Уттара Ашадха",   san:"Uttara Āṣāḍhā",   deity:"Вишведевы",      lord:"Солнце",  syllables:["Бе","Бо","Джа","Джи"]},
+  {name:"Шравана",         san:"Śravaṇa",         deity:"Вишну",          lord:"Луна",    syllables:["Джу","Дже","Джо","Гха"]},
+  {name:"Дхаништха",       san:"Dhaniṣṭhā",       deity:"Ашта Васу",      lord:"Марс",    syllables:["Га","Ги","Гу","Ге"]},
+  {name:"Шатабхиша",       san:"Śatabhiṣā",       deity:"Варуна",         lord:"Раху",    syllables:["Го","Са","Си","Су"]},
+  {name:"Пурва Бхадрапада",san:"Pūrva Bhādrapadā",deity:"Аджа Экапад",    lord:"Юпитер",  syllables:["Се","Со","Да","Ди"]},
+  {name:"Уттара Бхадрапада",san:"Uttara Bhādrapadā",deity:"Ахир Будхнья", lord:"Сатурн",  syllables:["Ду","Тха","Джха","Да"]},
+  {name:"Ревати",          san:"Revatī",          deity:"Пушан",          lord:"Меркурий",syllables:["Де","До","Ча","Чи"]},
+];
+const DEVANAGARI={
+  "Чу":"चु","Че":"चे","Чо":"चो","Ла":"ला","Ли":"ली","Лу":"लु","Ле":"ले","Ло":"लो",
+  "А":"अ","И":"इ","У":"उ","Э":"ए","О":"ओ","Ва":"वा","Ви":"वि","Ву":"वु",
+  "Ве":"वे","Во":"वो","Ка":"का","Ки":"कि","Ку":"कु","Гха":"घा","Инг":"ङ","Джха":"झा",
+  "Ке":"के","Ко":"को","Ха":"हा","Хи":"हि","Ху":"हु","Хе":"हे","Хо":"हो","Да":"दा",
+  "Ди":"दि","Ду":"दु","Де":"दे","До":"दो","Ма":"मा","Ми":"मि","Му":"मु","Ме":"मे",
+  "Мо":"मो","Та":"ता","Ти":"ति","Ту":"तु","Те":"ते","То":"तो","Па":"पा","Пи":"पि",
+  "Пу":"पु","Ша":"शा","На":"ना","Тха":"था","Пе":"पे","По":"पो","Ра":"रा","Ри":"रि",
+  "Ру":"रु","Ре":"रे","Ро":"रो","Ну":"नु","Не":"ने","Но":"नो","Я":"या","Йи":"यि","Ю":"यु",
+  "Е":"ये","Йо":"यो","Ба":"बा","Би":"बि","Бу":"बु","Дха":"धा","Пха":"फा",
+  "Бе":"बे","Бо":"बो","Джа":"जा","Джи":"जि","Джу":"जु","Дже":"जे","Джо":"जो",
+  "Га":"गा","Ги":"गि","Гу":"गु","Ге":"गे","Го":"गो","Са":"सा","Си":"सि","Су":"सु",
+  "Се":"से","Со":"सो","Ча":"चा","Чи":"чि","Ни":"नि",
+};
 
-  const svgHtml=renderSvg(pos,nadiLines,lagnaSign);
-  const analysisHtml=renderAnalysis(pos,nadiLines,lagnaSign,
-    new Date(dateVal+'T12:00').toLocaleDateString('ru-RU',{day:'numeric',month:'long',year:'numeric'}),city);
+function nakshatraResult(chart){
+  const sidLon=nd(chart.pos.Moon);          // Луна уже сидерическая (Лахири)
+  const ayanamsa=chart.ay;
+  const moonLon=nd(sidLon+ayanamsa);        // тропическая — для справки
+  const nakshatraIndex=Math.floor(sidLon/(360/27));
+  const padaIndex=Math.floor((sidLon%(360/27))/(360/108));
+  return {moonLon,ayanamsa,sidLon,nakshatraIndex,padaIndex,
+    nakshatra:NAKSHATRAS[nakshatraIndex],
+    syllable:NAKSHATRAS[nakshatraIndex].syllables[padaIndex],
+    degInNakshatra:sidLon%(360/27)};
+}
 
-  const resultEl=document.getElementById('result');
-  resultEl.innerHTML=`
-  <div class="result-layout">
-    <div class="chart-wrap">
-      <div class="chart-title">Южноиндийская карта · Сидерический зодиак</div>
-      ${svgHtml}
-      <div class="legend">
-        <div class="leg-item"><div class="leg-dot" style="background:#2E8B57"></div>Экзальтация</div>
-        <div class="leg-item"><div class="leg-dot" style="background:#66BB6A"></div>Знак друга</div>
-        <div class="leg-item"><div class="leg-dot" style="background:#C8960C"></div>Нейтральный</div>
-        <div class="leg-item"><div class="leg-dot" style="background:#FF8C00"></div>Знак врага</div>
-        <div class="leg-item"><div class="leg-dot" style="background:#CC2200"></div>Падение</div>
-        <div class="leg-item"><div class="leg-dot" style="background:#D4A017;border:1px dashed #B8860B"></div>Остров ◆</div>
+function renderNaksh(chart){
+  const r=nakshatraResult(chart);
+  const {nakshatra,padaIndex,syllable,sidLon,ayanamsa,moonLon,degInNakshatra}=r;
+  const devan=DEVANAGARI[syllable]||'';
+  const nakshatraDeg=360/27;
+  const percentDone=(degInNakshatra/nakshatraDeg*100).toFixed(1);
+  const f=chart.input;
+  const tzStr=f.tz>=0?`UTC+${f.tz}`:`UTC${f.tz}`;
+  const dateStr=new Date(f.y,f.mo-1,f.d).toLocaleDateString('ru-RU',{day:'numeric',month:'long',year:'numeric'});
+  const timeVal=`${String(f.h).padStart(2,'0')}:${String(f.mi).padStart(2,'0')}`;
+  const city=document.getElementById('bplace').value.trim();
+  const padas=nakshatra.syllables.map((syl,i)=>{
+    const dev=DEVANAGARI[syl]||'';
+    return `<div class="pada-chip ${i===padaIndex?'active':''}">
+      <span class="chip-num">Пада ${i+1}</span>
+      <span>${syl}</span>
+      ${dev?`<span style="font-size:.8em;opacity:.75">${dev}</span>`:''}
+    </div>`;
+  }).join('');
+  document.getElementById('out-naksh').innerHTML=`
+  <div class="result-card">
+    <div class="result-header">
+      <span class="syllable-main">${syllable}</span>
+      ${devan?`<span class="syllable-devanagari">${devan}</span>`:''}
+    </div>
+    <div class="result-body">
+      <div class="result-grid">
+        <div class="result-item">
+          <div class="result-label">Накшатра</div>
+          <div class="result-value large">${nakshatra.name}</div>
+          <div class="nakshatra-deity">${nakshatra.san}</div>
+        </div>
+        <div class="result-item">
+          <div class="result-label">Пада</div>
+          <div class="result-value large">${padaIndex+1} из 4</div>
+          <div class="nakshatra-deity">${degInNakshatra.toFixed(2)}° внутри накшатры</div>
+        </div>
+        <div class="result-item">
+          <div class="result-label">Владыка накшатры</div>
+          <div class="result-value">${nakshatra.lord}</div>
+        </div>
+        <div class="result-item">
+          <div class="result-label">Адхи-дева</div>
+          <div class="result-value">${nakshatra.deity}</div>
+        </div>
+        <div class="result-item">
+          <div class="result-label">Имяначальный слог</div>
+          <div class="result-value large">${syllable} ${devan}</div>
+        </div>
+        <div class="result-item">
+          <div class="result-label">Дата · Время · Зона</div>
+          <div class="result-value">${dateStr}</div>
+          <div class="nakshatra-deity">${timeVal} · ${tzStr}${city?' · '+city:''}</div>
+        </div>
+      </div>
+      <div class="all-padas">
+        <div class="all-padas-title">Все четыре пады накшатры ${nakshatra.name}</div>
+        <div class="padas-row">${padas}</div>
+      </div>
+      <div class="moon-details">
+        Луна тропическая: ${moonLon.toFixed(4)}° &nbsp;·&nbsp;
+        Аянамша Лахири: ${ayanamsa.toFixed(4)}° &nbsp;·&nbsp;
+        Луна сидерическая: ${sidLon.toFixed(4)}°<br>
+        Накшатра № ${r.nakshatraIndex+1}/27 &nbsp;·&nbsp;
+        Завершено в накшатре: ${percentDone}%
       </div>
     </div>
-    ${analysisHtml}
   </div>`;
-  resultEl.style.display='block';
-  resultEl.scrollIntoView({behavior:'smooth',block:'start'});
-});
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   ВКЛАДКА 3 — НАВГРАХА-ЯНТРА  (порт из quasisun/astro-yantra)
+   Достоинства планет из общего движка → раскраска 3×3 на canvas + упайи.
+   ════════════════════════════════════════════════════════════════════ */
+const ZODIAC=SIGN_RU;
+const SIGN_LORD=['mars','venus','mercury','moon','sun','mercury','venus','mars','jupiter','saturn','saturn','jupiter'];
+const EXALTATION={sun:0,moon:1,mercury:5,venus:11,mars:9,jupiter:3,saturn:6,rahu:2,ketu:8};
+const DEBILITATION={sun:6,moon:7,mercury:11,venus:5,mars:3,jupiter:9,saturn:0,rahu:8,ketu:2};
+const OWN_SIGNS_L={sun:[4],moon:[3],mercury:[2,5],venus:[1,6],mars:[0,7],jupiter:[8,11],saturn:[9,10],rahu:[],ketu:[]};
+const MOOLATRIKONA={sun:4,moon:1,mercury:5,venus:6,mars:0,jupiter:8,saturn:10};
+const FRIENDSHIP={
+  sun:{friend:['moon','mars','jupiter'],neutral:['mercury'],enemy:['venus','saturn','rahu','ketu']},
+  moon:{friend:['sun','mercury'],neutral:['mars','jupiter','venus','saturn'],enemy:['rahu','ketu']},
+  mercury:{friend:['sun','venus'],neutral:['mars','jupiter','saturn'],enemy:['moon','rahu','ketu']},
+  venus:{friend:['mercury','saturn'],neutral:['mars','jupiter'],enemy:['sun','moon','rahu','ketu']},
+  mars:{friend:['sun','moon','jupiter'],neutral:['venus','saturn'],enemy:['mercury','rahu','ketu']},
+  jupiter:{friend:['sun','moon','mars'],neutral:['saturn'],enemy:['mercury','venus','rahu','ketu']},
+  saturn:{friend:['mercury','venus'],neutral:['jupiter'],enemy:['sun','moon','mars','rahu','ketu']},
+  rahu:{friend:['venus','saturn','mercury'],neutral:['jupiter'],enemy:['sun','moon','mars']},
+  ketu:{friend:['mars','venus','mercury'],neutral:['saturn','jupiter'],enemy:['sun','moon']},
+};
+const NEECHA_BHANGA={
+  sun:{deblord:'venus',exaltsThere:'saturn'},
+  moon:{deblord:'mars',exaltsThere:null},
+  mercury:{deblord:'jupiter',exaltsThere:'venus'},
+  venus:{deblord:'mercury',exaltsThere:'mercury'},
+  mars:{deblord:'moon',exaltsThere:'jupiter'},
+  jupiter:{deblord:'saturn',exaltsThere:'mars'},
+  saturn:{deblord:'mars',exaltsThere:'sun'},
+  rahu:{deblord:'mars',exaltsThere:null},
+  ketu:{deblord:'mercury',exaltsThere:null},
+};
+const D_COLOR={exalted:'#1B7E3A',moolatrikona:'#2E9E50',own:'#3CB371',friend:'#C8A400',neutral:'#3A7FC1',enemy:'#D4620A',debilitated:'#C0222E',nbhanga:'#6A0DAD'};
+const D_LABEL={exalted:'Возвышение',moolatrikona:'Мулатрикона',own:'Обитель',friend:'Дружественный',neutral:'Нейтральный',enemy:'Враждебный',debilitated:'Падение',nbhanga:'Нееча-бханга ✦'};
+const D_EMOJI={exalted:'✦',moolatrikona:'✦',own:'◈',friend:'◉',neutral:'◎',enemy:'◌',debilitated:'▽',nbhanga:'✦'};
+const PLANET_ORDER=['sun','moon','mercury','venus','mars','jupiter','saturn','rahu','ketu'];
+const PLANET_RU={sun:'Солнце ☉',moon:'Луна ☽',mercury:'Меркурий ☿',venus:'Венера ♀',mars:'Марс ♂',jupiter:'Юпитер ♃',saturn:'Сатурн ♄',rahu:'Раху ☊',ketu:'Кету ☋'};
+const PLANET_POS={mercury:[0,0],venus:[1,0],moon:[2,0],jupiter:[0,1],sun:[1,1],mars:[2,1],ketu:[0,2],saturn:[1,2],rahu:[2,2]};
+const UPAYAS={
+  sun:{weak:['Носить рубин или красный гранат','Читать Гаятри-мантру 108 раз в воскресенье','Предлагать воду восходящему Солнцу каждое утро','Поститься по воскресеньям','Дарить медь, пшеницу, красный сандал'],strong:['Солнце сильно — практикуйте щедрость и сострадание']},
+  moon:{weak:['Носить жемчуг или лунный камень в серебре','Читать мантру "Ом Чандрайя Намаха" по понедельникам','Поститься по понедельникам, предлагать молоко','Благотворительность: рис, молоко, сахар','Медитировать при свете полной луны'],strong:['Поддерживайте ритмичный режим сна и отдыха']},
+  mercury:{weak:['Носить изумруд или зелёный турмалин','Читать Вишну-сахасранаму по средам','Благотворительность книгами, помощь студентам','Поститься по средам','Избегать лжи'],strong:['Используйте острый ум для служения']},
+  venus:{weak:['Носить белый сапфир или опал','Поклонение Лакшми по пятницам','Предлагать белые цветы, рис с молоком','Носить белое по пятницам','Практиковать искусство: музыку, рисование'],strong:['Культивируйте красоту и гармонию']},
+  mars:{weak:['Носить красный коралл в золоте','Читать Хануман-Чалиса по вторникам','Предлагать красные цветы в храме Ханумана','Поститься по вторникам','Благотворительность красной чечевицей'],strong:['Направьте энергию в физическую практику']},
+  jupiter:{weak:['Носить жёлтый сапфир в золоте','Читать Вишну-сахасранаму по четвергам','Поститься по четвергам, предлагать нут','Уважать учителей, помогать браминам','Носить жёлтое по четвергам'],strong:['Делитесь знаниями — это ваша сила']},
+  saturn:{weak:['Носить синий сапфир или аметист (с консультацией!)','Читать Хануман-Чалиса или Шани-стотру по субботам','Предлагать горчичное масло чёрному камню по субботам','Кормить ворон и бездомных животных','Благотворительность: кунжут, железо'],strong:['Терпение и дисциплина — ваши главные союзники']},
+  rahu:{weak:['Носить гессонит (гомед) в серебре','Читать мантру Раху 108 раз в субботу','Предлагать синие цветы у дерева баньян','Медитировать для ясности ума','Благотворительность синими предметами'],strong:['Используйте нестандартное мышление творчески']},
+  ketu:{weak:['Носить кошачий глаз в серебре','Поклоняться Ганеше, читать Кету-стотру','Предлагать пёстрые цветы по вторникам','Практиковать медитацию и отречение','Благотворительность пёстрыми тканями'],strong:['Практикуйте внутреннее безмолвие']},
+};
+
+function getDignity(planet,signIdx){
+  if(DEBILITATION[planet]===signIdx) return 'debilitated';
+  if(EXALTATION[planet]===signIdx)   return 'exalted';
+  if(MOOLATRIKONA[planet]===signIdx) return 'moolatrikona';
+  if((OWN_SIGNS_L[planet]||[]).includes(signIdx)) return 'own';
+  const lord=SIGN_LORD[signIdx];
+  if(lord===planet) return 'own';
+  const rel=FRIENDSHIP[planet]||{};
+  if((rel.friend||[]).includes(lord))  return 'friend';
+  if((rel.enemy||[]).includes(lord))   return 'enemy';
+  return 'neutral';
+}
+function checkNeechaBhanga(planet, planets){
+  const nb=NEECHA_BHANGA[planet];
+  if(!nb) return false;
+  const isStrong=(p)=>{ if(!planets[p]) return false; const d=planets[p].dignity; return d==='exalted'||d==='moolatrikona'||d==='own'; };
+  if(isStrong(nb.deblord)) return true;
+  if(nb.exaltsThere && isStrong(nb.exaltsThere)) return true;
+  const exaltSign=EXALTATION[planet];
+  if(exaltSign!==undefined){ const exaltLord=SIGN_LORD[exaltSign]; if(exaltLord!==planet && isStrong(exaltLord)) return true; }
+  return false;
+}
+
+const yantraImg=new Image(); yantraImg.src='./yantra-bg.jpg';
+let computedYantra={};
+yantraImg.onload=()=>{ if(Object.keys(computedYantra).length && document.getElementById('yantraCanvas')) drawYantraCanvas(computedYantra); };
+
+function yantraPlanets(chart){
+  const M={Sun:'sun',Moon:'moon',Mercury:'mercury',Venus:'venus',Mars:'mars',Jupiter:'jupiter',Saturn:'saturn',Rahu:'rahu',Ketu:'ketu'};
+  const res={};
+  for(const k in M){ const lon=nd(chart.pos[k]); const si=Math.floor(lon/30); res[M[k]]={lon,deg:lon-si*30,signIdx:si,sign:ZODIAC[si],dignity:getDignity(M[k],si)}; }
+  for(const p of PLANET_ORDER){ if(res[p].dignity==='debilitated' && checkNeechaBhanga(p,res)){ res[p].dignity='nbhanga'; res[p].nbhanga=true; } }
+  return res;
+}
+function hexRgba(hex,a){const c=parseInt(hex.replace('#',''),16);return 'rgba('+((c>>16)&255)+','+((c>>8)&255)+','+(c&255)+','+a+')';}
+
+function drawYantraCanvas(planets){
+  const cv=document.getElementById('yantraCanvas'); if(!cv) return;
+  const ctx=cv.getContext('2d');
+  const alpha=parseFloat(document.getElementById('alphaSlider').value);
+  const W=yantraImg.naturalWidth||900,H=yantraImg.naturalHeight||900;
+  cv.width=W;cv.height=H;
+  if(yantraImg.complete && yantraImg.naturalWidth) ctx.drawImage(yantraImg,0,0,W,H);
+  else { ctx.fillStyle='#faf4ea'; ctx.fillRect(0,0,W,H); }
+  const cw=W/3,ch=H/3;
+  const cl=document.getElementById('canvasLegend'); cl.innerHTML='';
+  PLANET_ORDER.forEach(p=>{
+    const pl=planets[p];
+    const[col,row]=PLANET_POS[p];
+    const color=D_COLOR[pl.dignity];
+    ctx.fillStyle=hexRgba(color,alpha);
+    ctx.fillRect(col*cw,row*ch,cw,ch);
+    const cx=col*cw+cw/2,cy=row*ch+ch/2;
+    const fs=Math.round(Math.min(cw,ch)*.1);
+    ctx.save();
+    ctx.shadowColor='rgba(0,0,0,.7)';ctx.shadowBlur=4;
+    ctx.fillStyle='#fff';
+    ctx.font='bold '+fs+'px Georgia,serif';
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(PLANET_RU[p].replace(/\s[\S]+$/,''),cx,cy-fs*.45);
+    ctx.font=Math.round(fs*.8)+'px Georgia,serif';
+    ctx.shadowBlur=3;
+    ctx.fillText(pl.sign+(pl.nbhanga?' ✦':''),cx,cy+fs*.6);
+    ctx.restore();
+    const item=document.createElement('div'); item.className='cl-item';
+    item.innerHTML='<div class="cl-swatch" style="background:'+color+'"></div><span><b>'+PLANET_RU[p].replace(/\s[\S]+$/,'')+'</b> '+D_LABEL[pl.dignity]+'</span>';
+    cl.appendChild(item);
+  });
+  const db=document.getElementById('downloadBtn');
+  if(db){ db.href=cv.toDataURL('image/png'); db.download='navagraha_yantra.png'; }
+}
+function buildYantraTable(planets,ay){
+  const tb=document.getElementById('ptBody'); tb.innerHTML='';
+  const nbList=[];
+  PLANET_ORDER.forEach(p=>{
+    const pl=planets[p],col=D_COLOR[pl.dignity];
+    if(pl.nbhanga) nbList.push(PLANET_RU[p].replace(/\s[\S]+$/,''));
+    const tr=document.createElement('tr');
+    tr.innerHTML='<td>'+PLANET_RU[p]+'</td><td>'+pl.sign+'</td>'
+      +'<td><span class="dignity-badge" style="background:'+col+'">'+D_EMOJI[pl.dignity]+' '+D_LABEL[pl.dignity]+'</span></td>'
+      +'<td class="deg-cell">'+pl.lon.toFixed(2)+'° ('+pl.deg.toFixed(1)+'° '+pl.sign+')</td>';
+    tb.appendChild(tr);
+  });
+  document.getElementById('aynote').textContent='Айянамша Лахири: '+ay.toFixed(4)+'°';
+  const nb=document.getElementById('nbhangaNote');
+  if(nbList.length){
+    nb.textContent='✦ Нееча-бханга (отмена падения): '+nbList.join(', ')+' — падение отменено, планета обретает особую силу преодоления.';
+    nb.classList.add('visible');
+  } else nb.classList.remove('visible');
+}
+function buildUpayas(planets){
+  const ul=document.getElementById('upayaList'); ul.innerHTML='';
+  PLANET_ORDER.forEach(p=>{
+    const pl=planets[p],col=D_COLOR[pl.dignity];
+    const weak=(pl.dignity==='debilitated'||pl.dignity==='enemy'||pl.dignity==='nbhanga');
+    const tips=weak?UPAYAS[p].weak:UPAYAS[p].strong;
+    const lbl=pl.nbhanga?'✦ '+PLANET_RU[p]+' — Нееча-бханга (укрепить особо)':weak?'Укрепить '+PLANET_RU[p].replace(/\s[\S]+$/,'')+' ('+D_LABEL[pl.dignity]+')':PLANET_RU[p]+' — '+D_LABEL[pl.dignity];
+    const det=document.createElement('details'); det.className='upaya';
+    det.innerHTML='<summary><span><span class="upaya-badge" style="background:'+col+'"></span>'+lbl+'</span></summary>'
+      +'<div class="db"><strong>'+(weak?'Рекомендуемые упайи:':'Планета сильна:')+'</strong><ul>'+tips.map(t=>'<li>'+t+'</li>').join('')+'</ul></div>';
+    ul.appendChild(det);
+  });
+}
+function renderYantra(chart){
+  const planets=yantraPlanets(chart);
+  computedYantra=planets;
+  document.getElementById('out-yantra').innerHTML=`
+  <div class="yantra-wrap">
+    <canvas id="yantraCanvas"></canvas>
+    <div class="alpha-row">
+      <span>Насыщенность</span>
+      <input type="range" id="alphaSlider" min="0.15" max="0.85" step="0.05" value="0.5"
+             oninput="document.getElementById('alphaVal').textContent=parseFloat(this.value).toFixed(2);drawYantraCanvas(computedYantra)">
+      <span id="alphaVal">0.50</span>
+    </div>
+    <a id="downloadBtn" class="yantra-download" href="#" download>Скачать PNG</a>
+    <div class="canvas-legend" id="canvasLegend"></div>
+  </div>
+  <div class="table-scroll"><table class="yantra-table">
+    <thead><tr><th>Планета</th><th>Знак</th><th>Достоинство</th><th>Долгота</th></tr></thead>
+    <tbody id="ptBody"></tbody>
+  </table></div>
+  <p class="aynote" id="aynote"></p>
+  <div class="nbhanga-note" id="nbhangaNote"></div>
+  <div class="nadi-title">Упайи — рекомендации по планетам</div>
+  <div class="upaya-list" id="upayaList"></div>`;
+  drawYantraCanvas(planets);
+  buildYantraTable(planets,chart.ay);
+  buildUpayas(planets);
+}
+
+/* ── Инициализация ── */
+document.getElementById('year').textContent=new Date().getFullYear();
+ensureEngine(); // начинаем грузить эфемериды сразу
+// зимнее/летнее время зависит от даты — пересчитываем пояс при её смене
+document.getElementById('bdate').addEventListener('change',()=>{ if(BIRTH_ZONE && applyZoneOffset()) setZoneStatus(); });
 </script>
 </body>
 </html>
