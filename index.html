@@ -139,8 +139,13 @@ table.maitri-matrix tbody th{color:var(--c-ink);text-align:right}
 .print-row{text-align:center;margin:0 0 22px}
 
 /* ── Печать / сохранение в PDF ── */
+.print-only { display:none; }
 @media print {
   #formSection, .engine-badge, .tabs, .print-row, .chart-toggle, .alpha-row, .geo-status { display:none !important; }
+  .tab-panel, .tab-panel[hidden] { display:block !important; }
+  .print-only { display:block !important; }
+  .print-title { color:var(--c-red); border-top:2px solid var(--c-line); padding-top:10px; }
+  #panel-naksh, #panel-yantra { break-before:page; }
   .astro-btn, .yantra-download, .nadi-expand-btn { display:none !important; }
   .nadi-desc-body { display:block !important; }
   details.upaya > .db { display:block !important; }
@@ -176,6 +181,13 @@ table.maitri-matrix tbody th{color:var(--c-ink);text-align:right}
         <div class="astro-field">
           <label for="btime">Время рождения</label>
           <input id="btime" type="time">
+        </div>
+        <div class="astro-field">
+          <label for="bsex">Пол</label>
+          <select id="bsex">
+            <option value="f">Женский</option>
+            <option value="m">Мужской</option>
+          </select>
         </div>
       </div>
 
@@ -215,21 +227,24 @@ table.maitri-matrix tbody th{color:var(--c-ink);text-align:right}
   </nav>
 
   <div class="print-row">
-    <button class="astro-btn astro-btn--ghost print-btn" onclick="window.print()">Скачать PDF (печать)</button>
+    <button class="astro-btn astro-btn--ghost print-btn" onclick="printAll()">Скачать PDF (все три раздела)</button>
   </div>
 
   <!-- Панель: Нади-карта -->
   <section class="astro-section tab-panel" id="panel-nadi">
+    <h2 class="astro-h2 print-only print-title">Нади-карта</h2>
     <div id="out-nadi"><p class="muted">Заполни данные рождения и нажми «Рассчитать».</p></div>
   </section>
 
   <!-- Панель: Имя по накшатре -->
   <section class="astro-section tab-panel" id="panel-naksh" hidden>
+    <h2 class="astro-h2 print-only print-title">Имя по накшатре</h2>
     <div id="out-naksh"><p class="muted">Заполни данные рождения и нажми «Рассчитать».</p></div>
   </section>
 
   <!-- Панель: Навграха-янтра -->
   <section class="astro-section tab-panel" id="panel-yantra" hidden>
+    <h2 class="astro-h2 print-only print-title">Навграха-янтра</h2>
     <div id="out-yantra"><p class="muted">Заполни данные рождения и нажми «Рассчитать».</p></div>
   </section>
 
@@ -548,7 +563,8 @@ function readForm(){
   if(!isFinite(tz)){ alert('Укажите часовой пояс (например, 3 для Москвы).'); return null; }
   const [y,mo,d]=bdate.split('-').map(Number);
   const [h,mi]=btime.split(':').map(Number);
-  return {y,mo,d,h,mi,tz,lat,lon};
+  const sex=(document.getElementById('bsex')||{}).value==='m'?'m':'f';
+  return {y,mo,d,h,mi,tz,lat,lon,sex};
 }
 
 async function computeAll(){
@@ -557,6 +573,13 @@ async function computeAll(){
   CHART=await computeChart(f.y,f.mo,f.d,f.h,f.mi,f.tz,f.lat,f.lon);
   CHART.input=f;
   renderActiveTab();
+}
+
+// PDF: отрисовать все три раздела и открыть окно печати (Сохранить как PDF)
+function printAll(){
+  if(!CHART){ alert('Сначала заполните данные рождения и нажмите «Рассчитать».'); return; }
+  renderNadi(CHART); renderNaksh(CHART); renderYantra(CHART);
+  setTimeout(function(){ window.print(); }, 80);
 }
 
 /* ── Переключение вкладок ── */
@@ -635,8 +658,8 @@ const NADI_DESC = {
     upaya:'Нельзя есть мясо — укорачивает жизнь. Развивать интуицию и прислушиваться к ней.'},
   'Su_Ve': {name:'Солнце — Венера',
     positive:'50% блага, 50% сложностей. Польза от подруг и отца, хорошая семейная жизнь, богатое наследство от родственниц.',
-    negative:'Солнце в 12-м доме от Венеры — человек не может копить деньги. Жизнь отца короткая. Слабое здоровье у мужчин.',
-    upaya:'Женщина должна носить золотой браслет на правой руке. Жертвовать ячмень в храм.'},
+    negative:'Солнце в 12-м доме от Венеры — трудно копить деньги. Жизнь отца короткая.',
+    upaya:'Носить золотой браслет на правой руке. Жертвовать ячмень в храм.'},
   'Su_Ma': {name:'Солнце — Марс',
     positive:'«Собственность предков». Долгая жизнь, победа над врагами. Марс во 2-м от Солнца — человек всегда успевает делать дела.',
     negative:'Марс во Льве — внезапная потеря брата. При Мангалик-доше — много обмана и препятствий.',
@@ -662,8 +685,8 @@ const NADI_DESC = {
     negative:'Чем хуже Луна — тем хуже нади. При слабой Луне все результаты ослабевают.',
     upaya:'Поклонение Господу Шиве. Укрепление Луны: носить жемчуг, пить молоко утром.'},
   'Mo_Ve': {name:'Луна — Венера',
-    positive:'Счастье и комфорт. Муж будет любить. Высокая чувствительность и красота. Есть творог — рекомендуется.',
-    negative:'Венера и Луна могут уничтожить все йоги. Луна в трине к Венере — жена обманщица. Оппозиция — потеря матери до брака.',
+    positive:'Счастье и комфорт. {С.nom} будет любить и оберегать. Высокая чувствительность и красота. Есть творог — рекомендуется.',
+    negative:'Венера и Луна могут уничтожить все йоги. Луна в трине к Венере — склонность {с.gen} к обману. Оппозиция — потеря матери до брака.',
     upaya:'Комбинация требует баланса: не допускать излишней чувствительности. Молитва Лакшми.'},
   'Mo_Ma': {name:'Луна — Марс',
     positive:'Денежное изобилие при восходящей Луне. Марс в Раке — человек купит дом. Марс в Овне улучшает Луну в Скорпионе.',
@@ -686,28 +709,28 @@ const NADI_DESC = {
     negative:'«Слепая лошадь». Плохая судьба, дурная слава матери, слабое здоровье матери. Подагра, пневмония.',
     upaya:'Носить серебряный браслет. Не посещать общественные туалеты. Не пить молоко по ночам.'},
   'Ve_Ju': {name:'Венера — Юпитер',
-    positive:'Венера в 12-м от Юпитера в мужской карте — жена из прошлой жизни, мужчина не оставит жену. Сильная привязанность.',
-    negative:'Юпитер и Венера в 6/8 — временное расставание с женой. Несчастливая семейная жизнь. Проблемы от женщин.',
-    upaya:'Уважение к женщинам в семье. Молитва Лакшми по пятницам.'},
+    positive:'Венера в 12-м от Юпитера — {с.nom} «из прошлой жизни», союз крепкий, расставание маловероятно. Сильная сердечная привязанность.',
+    negative:'Юпитер и Венера в 6/8 — временное расставание с {с.ins}. Непростая семейная жизнь, испытания в близких отношениях.',
+    upaya:'Уважение к {с.dat} и к женскому началу в семье. Молитва Лакшми по пятницам.'},
   'Ve_Ma': {name:'Венера — Марс',
-    positive:'«Хлебопечка». Богатая жизнь, хорошие манеры, храбрость. Обмен Венеры и Марса даёт привлекательную внешность.',
-    negative:'В мужской карте — слабое здоровье жены.',
-    upaya:'Жена должна носить серебряный браслет, покрытый красной краской.'},
+    positive:'«Хлебопечка». Достаток, хорошие манеры, храбрость, страстность. Обмен Венеры и Марса даёт привлекательную внешность.',
+    negative:'Возможно слабое здоровье {с.gen}; импульсивность в близких отношениях.',
+    upaya:'{С.dat} носить серебряный браслет, покрытый красной краской.'},
   'Ve_Me': {name:'Венера — Меркурий',
-    positive:'«Водяная мельница». Хорошее образование, работа на государство, издательский бизнес, музыкальное образование. Удовольствие от своей жены.',
-    negative:'Меркурий с Венерой в мужской карте — риск любовницы. Обмен — жена и любовница одновременно. В 12-м доме — плохая семейная жизнь.',
+    positive:'«Водяная мельница». Хорошее образование, работа на государство, издательское дело, музыка и искусство. Радость и поддержка от {с.gen}.',
+    negative:'Риск связи на стороне, возможны параллельные отношения. В 12-м доме — напряжённая семейная жизнь.',
     upaya:'Молитва Сарасвати. Развивать честность в отношениях.'},
   'Ve_Sa': {name:'Венера — Сатурн',
-    positive:'«Чёрный перец и масло гхи». Если Венера сильнее — муж будет обеспечивать. Одновременная женитьба и смена работы. В Тельце — богатая личность.',
-    negative:'При плохом Сатурне — трудная семейная жизнь, лень, большие траты. Возможна импотенция/фригидность.',
+    positive:'«Чёрный перец и масло гхи». Если Венера сильнее — {с.nom} обеспечивает семью. Часто женитьба и смена работы рядом. В Тельце — состоятельная личность.',
+    negative:'При слабом Сатурне — трудная семейная жизнь, лень, большие траты, охлаждение чувств.',
     upaya:'Улучшать планету — управителя дома, где стоит Венера.'},
   'Ve_Ra': {name:'Венера — Раху',
     positive:'—',
-    negative:'«Тёмная буря». Упрямая и хитрая жена. Слабое здоровье, геморрой, плохая семейная жизнь, денежные потери.',
+    negative:'«Тёмная буря». Упрямство и хитрость со стороны {с.gen}. Слабое здоровье, напряжённая семейная жизнь, денежные потери.',
     upaya:'Держать дома рис, омытый молоком с серебром. Носить серебряное кольцо. Закопать медную монету в пятницу.'},
   'Ve_Ke': {name:'Венера — Кету',
-    positive:'Сиддхи в мантра-шастре или занятие медициной.',
-    negative:'Не покупать уже построенную недвижимость. Ментальные проблемы у супруги. Расточительность, бесплодие или больные дети.',
+    positive:'Сиддхи в мантра-шастре или склонность к медицине и целительству.',
+    negative:'Не покупать уже построенную недвижимость. Ментальные трудности у {с.gen}. Расточительность, сложности с детьми.',
     upaya:'Упайи для Юпитера. Молитва Ганеше.'},
   'Ma_Ju': {name:'Марс — Юпитер',
     positive:'Сильная раджа-йога, мужество и мудрость в сочетании. Успех в военной или юридической карьере. Защита от врагов.',
@@ -721,6 +744,10 @@ const NADI_DESC = {
     positive:'Технический ум, успех в точных науках, IT, инженерии. Острый и быстрый интеллект.',
     negative:'Резкость в словах, споры. Риск нервных расстройств. Меркурий враг Марсу.',
     upaya:'Практика молчания (мауна) один день в неделю.'},
+  'Me_Sa': {name:'Меркурий — Сатурн',
+    positive:'Методичный, дисциплинированный ум; терпение в расчётах и долгих проектах. Хорошо для науки, права, бухгалтерии, работы со словом.',
+    negative:'Тяжёлое, медленное мышление, пессимизм, страх ошибки, задержки в учёбе и сделках, сухая осторожная речь.',
+    upaya:'Размеренный режим умственного труда. Изумруд и синий сапфир — только вместе и после проверки. Служение учителям.'},
   'Ju_Sa': {name:'Юпитер — Сатурн',
     positive:'Глубокая мудрость, приходящая через испытания. Успех в зрелом возрасте. Юрист, судья, философ.',
     negative:'Конфликт между расширением (Юпитер) и ограничением (Сатурн). Медленный рост, разочарования.',
@@ -762,6 +789,20 @@ const NADI_DESC = {
     negative:'Хроническая неудовлетворённость, изоляция, задержки, мрачность, кармические долги, чувство «отрезанности».',
     upaya:'Служение старым и больным, кормление животных. Шани- и Кету-стотры по субботам. Простой образ жизни.'},
 };
+// Гендеризация: тексты написаны для мужской карты (супруг = жена);
+// для женской карты подставляем мужские словоформы через токены {с.падеж}/{С.падеж}.
+const SPOUSE_FORMS={
+  m:{nom:'жена',gen:'жены',dat:'жене',acc:'жену',ins:'женой',pre:'жене'},
+  f:{nom:'муж',gen:'мужа',dat:'мужу',acc:'мужа',ins:'мужем',pre:'муже'}
+};
+let NATIVE_SEX='f';
+function gz(text){
+  if(!text) return text;
+  const sf=SPOUSE_FORMS[NATIVE_SEX]||SPOUSE_FORMS.f;
+  return text.replace(/\{([Сс])\.(nom|gen|dat|acc|ins|pre)\}/g,(_,cap,c)=>{
+    const w=sf[c]; return cap==='С'? w.charAt(0).toUpperCase()+w.slice(1) : w;
+  });
+}
 function getNadiDesc(planet, lord){
   const key1=planet+'_'+lord, key2=lord+'_'+planet;
   return NADI_DESC[key1] || NADI_DESC[key2] || null;
@@ -905,9 +946,9 @@ function renderAnalysis(positions, nadiLines, lagnaSign, dateStr, city){
       </div>
       <div class="nadi-desc-body" style="display:none;margin-top:6px;padding:10px 12px;background:rgba(255,255,255,.7);border-radius:8px;border-left:3px solid ${QUALITY_COLOR[l.quality]};line-height:1.7;color:var(--br)">
         <div style="font-weight:700;letter-spacing:.04em;color:var(--tcd);margin-bottom:6px;text-transform:uppercase">${desc.name}</div>
-        ${desc.positive&&desc.positive!=='—'?`<div style="margin-bottom:4px"><span style="color:#2E8B57;font-weight:700">Благоприятное:</span> ${desc.positive}</div>`:''}
-        ${desc.negative?`<div style="margin-bottom:4px"><span style="color:#CC2200;font-weight:700">Сложности:</span> ${desc.negative}</div>`:''}
-        ${desc.upaya?`<div><span style="color:var(--c-red);font-weight:700">Упайи:</span> ${desc.upaya}</div>`:''}
+        ${desc.positive&&desc.positive!=='—'?`<div style="margin-bottom:4px"><span style="color:#2E8B57;font-weight:700">Благоприятное:</span> ${gz(desc.positive)}</div>`:''}
+        ${desc.negative?`<div style="margin-bottom:4px"><span style="color:#CC2200;font-weight:700">Сложности:</span> ${gz(desc.negative)}</div>`:''}
+        ${desc.upaya?`<div><span style="color:var(--c-red);font-weight:700">Упайи:</span> ${gz(desc.upaya)}</div>`:''}
       </div>`:'';
     nadiItems+=`<div class="nadi-item ${l.quality}" style="flex-direction:column;align-items:stretch">
       <div style="display:flex;align-items:center;gap:8px">
@@ -1111,16 +1152,33 @@ const KETU_SIGN_PAST=[
   'мистик и отшельник — растворение, сострадание, духовные практики'
 ];
 const HOUSE_AREA=['личность и тело','семья, речь, накопления','смелость, усилия, братья и сёстры','дом, мать, корни, покой','дети, творчество, познание','служение, здоровье, преодоление','партнёрство и союзы','глубинные перемены, тайное, наследство','дхарма, удача, учителя, дальние страны','дело, статус, призвание','обретения, цели, круг общения','уединение, освобождение, заграница'];
+const KETU_HOUSE_ROLE=[
+  'самостоятельная, телесно активная фигура — воин, атлет, одиночка',          //1
+  'человек достатка и слова — род, еда, речь, накопления',                     //2
+  'мастер рук и воли — ремесло, письмо, торговля, ближние странствия',         //3
+  'хранитель дома и земли, опора рода',                                        //4
+  'наставник и творец — учитель, артист, родитель, человек идей',              //5
+  'служитель и боец — лекарь, воин, труженик, преодолевающий нужду',           //6
+  'человек союзов — партнёр, торговец, дипломат, мастер отношений',            //7
+  'человек тайного — мистик, целитель, исследователь скрытого и смерти',       //8
+  'человек дхармы — жрец, учитель, паломник, философ',                         //9
+  'человек дела и власти — руководитель, чиновник, мастер своего ремесла',     //10
+  'человек сообщества — старейшина круга, связующий цели и людей',             //11
+  'человек уединения — монах, странник, душа иных земель и снов'               //12
+];
 function pastLifeBlock(positions, lagSign){
   const sgn=p=>Math.floor(positions[p].lon/30);
   const house=p=>((sgn(p)-lagSign+12)%12)+1;
-  const keS=sgn('Ke'), keH=house('Ke'), raH=house('Ra');
+  const keS=sgn('Ke'), keH=house('Ke'), raS=sgn('Ra'), raH=house('Ra');
+  const keNak=NAKSHATRAS[Math.floor(nd(positions['Ke'].lon)/(360/27))].name;
   const lord5=SIGN_LORDS[(lagSign+4)%12], lord5H=((sgn(lord5)-lagSign+12)%12)+1;
   const occ5=['Su','Mo','Ma','Me','Ju','Ve','Sa','Ra','Ke'].filter(p=>house(p)===5).map(p=>P_NAMES[p]);
+  const who=NATIVE_SEX==='m'?'мужчина':'женщина';
   return `<div class="nadi-block"><h3>Возможная прошлая жизнь</h3>
-    <p><strong>Кету</strong> (багаж прошлого) — ${SIGN_NAMES[keS]}, ${keH}-й дом: ${KETU_SIGN_PAST[keS]}. Зрелый, уже пройденный опыт связан с темой «${HOUSE_AREA[keH-1]}» — здесь душа приходит умелой, но склонна повторять старое.</p>
-    <p><strong>Раху</strong> (задача этой жизни) — ${raH}-й дом: рост и новый опыт через тему «${HOUSE_AREA[raH-1]}». Непривычное душе направление, но нужное сейчас.</p>
-    <p><strong>5-й дом</strong> (пурва-пунья, заслуги прошлого): владыка — ${P_NAMES[lord5]} в ${lord5H}-м доме${occ5.length?'; в самом 5-м доме — '+occ5.join(', '):'; планет в 5-м доме нет'}. Через эту область проявляются накопленные заслуги и природные дары.</p>
+    <p><strong>Кету — ${SIGN_NAMES[keS]}, накшатра ${keNak}, ${keH}-й дом.</strong> Прошлая натура: ${KETU_SIGN_PAST[keS]}. Вероятная роль: ${KETU_HOUSE_ROLE[keH-1]} (сфера «${HOUSE_AREA[keH-1]}»). Скорее всего, этот ${who} уже проживал(а) подобное и приходит сюда зрелой душой.</p>
+    <p><strong>Что принесено из прошлого:</strong> зрелое умение в этой области — даётся легко, почти «по памяти», это сильная сторона характера. <strong>Что стоит отпустить:</strong> склонность снова и снова повторять знакомые роли и избегать нового именно здесь — в этом кармический тупик Кету.</p>
+    <p><strong>Раху — ${SIGN_NAMES[raS]}, ${raH}-й дом.</strong> Задача этой жизни — расти через сферу «${HOUSE_AREA[raH-1]}», осваивая качества знака ${SIGN_NAMES[raS]}. Поначалу непривычно и тревожно, но именно здесь приходят развитие, опыт и признание.</p>
+    <p><strong>5-й дом</strong> (пурва-пунья, заслуги прошлых жизней): владыка — ${P_NAMES[lord5]} в ${lord5H}-м доме${occ5.length?'; в самом 5-м доме — '+occ5.join(', '):'; планет в 5-м доме нет'}. Здесь — врождённые дары и «накопленная удача», которая открывается через сферу «${HOUSE_AREA[lord5H-1]}».</p>
     <p class="muted">Толкование образно-просветительское, не предсказание.</p>
   </div>`;
 }
@@ -1180,10 +1238,37 @@ function renderSvgNorth(positions, lagnaSign){
   return svg.join('\n');
 }
 
+/* ── Соединения планет (в одном знаке) — трактовка пары из NADI_DESC ── */
+function conjunctionsBlock(positions){
+  const P=['Su','Mo','Ma','Me','Ju','Ve','Sa','Ra','Ke'];
+  const sgn={}; for(const p of P) sgn[p]=Math.floor(positions[p].lon/30);
+  const items=[];
+  for(let i=0;i<P.length;i++)for(let j=i+1;j<P.length;j++){
+    if(sgn[P[i]]===sgn[P[j]]) items.push({a:P[i],b:P[j],sign:sgn[P[i]],desc:getNadiDesc(P[i],P[j])});
+  }
+  if(!items.length) return '';
+  const rows=items.map(it=>{
+    const head=`<div style="display:flex;align-items:center;gap:8px">
+      <span style="color:${P_COLOR[it.a]};font-weight:700;font-size:1.1em">${P_GLYPH[it.a]}</span>
+      <span style="color:${P_COLOR[it.b]};font-weight:700;font-size:1.1em">${P_GLYPH[it.b]}</span>
+      <span style="flex:1"><strong>${P_NAMES[it.a]} + ${P_NAMES[it.b]}</strong> в ${SIGN_NAMES[it.sign]}</span></div>`;
+    const d=it.desc;
+    const body=d?`<div style="margin-top:6px;padding:10px 12px;background:rgba(255,255,255,.7);border-radius:8px;border-left:3px solid var(--c-orange);line-height:1.7">
+        ${d.positive&&d.positive!=='—'?`<div style="margin-bottom:4px"><span style="color:#2E8B57;font-weight:700">Благоприятное:</span> ${gz(d.positive)}</div>`:''}
+        ${d.negative?`<div style="margin-bottom:4px"><span style="color:#CC2200;font-weight:700">Сложности:</span> ${gz(d.negative)}</div>`:''}
+        ${d.upaya?`<div><span style="color:var(--c-red);font-weight:700">Упайи:</span> ${gz(d.upaya)}</div>`:''}
+      </div>`:'';
+    return `<div class="nadi-item" style="flex-direction:column;align-items:stretch">${head}${body}</div>`;
+  }).join('');
+  return `<div class="nadi-block"><h3>Соединения планет</h3><div class="nadi-list">${rows}</div>
+    <p class="muted" style="margin-top:8px">Планеты в одном знаке смешивают и усиливают качества друг друга; трактовка пары раскрывает характер соединения.</p></div>`;
+}
+
 let nadiChartStyle='south';
 function setChartStyle(s){ nadiChartStyle=s; if(CHART) renderNadi(CHART); }
 
 function renderNadi(chart){
+  NATIVE_SEX=(chart.input.sex==='m')?'m':'f';
   const positions=nadiPositions(chart);
   const lagnaSign=Math.floor(positions.La.lon/30);
   const nadiLines=buildNadiLines(positions);
@@ -1200,6 +1285,7 @@ function renderNadi(chart){
      </div>
      <div class="nadi-chart-wrap">${chartSvg}</div>`
     +renderAnalysis(positions,nadiLines,lagnaSign,dateStr,city)
+    +conjunctionsBlock(positions)
     +yogasBlock(positions,lagnaSign)
     +dashaBlock(chart)
     +maitriBlock(positions)
