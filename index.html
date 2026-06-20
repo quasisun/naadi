@@ -123,6 +123,8 @@ details.upaya .db li{margin:3px 0}
 .nadi-block{margin-top:16px;padding:clamp(14px,4vw,18px);border:1px solid var(--c-line);border-radius:var(--radius-sm);background:var(--c-cream)}
 .nadi-block h3{margin:0 0 10px;font-family:var(--font-body);font-weight:700;font-size:var(--fs-body);text-transform:uppercase;letter-spacing:.03em;color:var(--c-red)}
 .dasha-line{margin:5px 0}
+.purpose-list{margin:6px 0 0;padding-left:20px}
+.purpose-list li{margin:4px 0}
 table.maitri-matrix{border-collapse:collapse;font-size:.82rem;margin:0 auto}
 table.maitri-matrix th,table.maitri-matrix td{padding:6px 9px;text-align:center;border:1px solid var(--c-line);white-space:nowrap}
 table.maitri-matrix thead th{color:var(--c-red)}
@@ -141,6 +143,7 @@ table.maitri-matrix tbody th{color:var(--c-ink);text-align:right}
 /* ── Печать / сохранение в PDF ── */
 .print-only { display:none; }
 @media print {
+  @page { margin: 0; }                              /* убирает браузерный колонтитул со ссылкой/датой/номером */
   #formSection, .engine-badge, .tabs, .print-row, .chart-toggle, .alpha-row, .geo-status { display:none !important; }
   .tab-panel, .tab-panel[hidden] { display:block !important; }
   .print-only { display:block !important; }
@@ -150,7 +153,9 @@ table.maitri-matrix tbody th{color:var(--c-ink);text-align:right}
   .nadi-desc-body { display:block !important; }
   details.upaya > .db { display:block !important; }
   details.upaya summary { list-style:none; }
-  .astro-app { --app-top-offset:6px; max-width:100%; padding:6px 10px; }
+  .astro-app { --app-top-offset:0 !important; max-width:100% !important; margin:0 !important; padding:14mm 12mm !important; background:#fff; }
+  .table-scroll { overflow:visible !important; }     /* таблицы не обрезаются, а помещаются на лист */
+  table.planet-table, table.yantra-table { font-size:11px; width:100%; }
   .astro-header { break-inside:avoid; }
   .nadi-block, .astro-card, .analysis-card, .result-card, .nadi-item, .island-box, details.upaya, table { break-inside:avoid; }
   a[href]:after { content:""; }
@@ -1048,13 +1053,26 @@ function vimshottari(chart){
   const toDate=day=>{ const dt=new Date(birthMs+day*86400000); return String(dt.getUTCDate()).padStart(2,'0')+'.'+String(dt.getUTCMonth()+1).padStart(2,'0')+'.'+dt.getUTCFullYear(); };
   return {maha,antar,prat,toDate,birthLord:DASHA_LORDS[startIdx]};
 }
+const DASHA_EFFECT={
+  Sun:'время самоутверждения и карьеры, отношений с властью и отцом. Растёт статус и уверенность, проявляется лидерство; важно беречь сердце, глаза и не давить эго.',
+  Moon:'мягкий, эмоциональный и семейный период. На первый план выходят дом, мать, отношения, душевный покой и забота; чувствительность и переменчивость настроения.',
+  Mars:'период энергии, инициативы и борьбы. Хорош для дел, спорта, недвижимости и решительных шагов; риск конфликтов, спешки и травм — нужна сдержанность.',
+  Mercury:'время учёбы, общения, торговли и интеллекта. Удачны бизнес, поездки, навыки, контакты и любое дело со словом и расчётом; возможна суетливость.',
+  Jupiter:'период роста, мудрости и удачи. Расширение, дети, учителя, духовность, благополучие и уважение; важно не лениться и не переоценивать себя.',
+  Venus:'период любви, красоты и достатка. Расцветают отношения, брак, искусство, удовольствия и комфорт; возможны соблазны и тяга к роскоши.',
+  Saturn:'время труда, дисциплины и зрелости. Медленный, но прочный рост через ответственность и ограничения; терпение и порядок дают долгий результат, бывает усталость.',
+  Rahu:'период амбиций и перемен. Тянет к новому, заграничному, нестандартному; возможны резкие взлёты и неожиданные повороты, но и иллюзии, тревога — нужна трезвость.',
+  Ketu:'период внутреннего поиска и завершений. Уход вглубь, духовность, интуиция, отказ от лишнего; внешнее может ослабнуть ради внутреннего созревания.'
+};
 function dashaBlock(chart){
   const v=vimshottari(chart);
-  return `<div class="nadi-block"><h3>Текущая Вимшоттари даша</h3>
+  return `<div class="nadi-block"><h3>Текущий период жизни (даша)</h3>
     <div class="dasha-line"><strong>Махадаша:</strong> ${DASHA_RU[v.maha.lord]} — до ${v.toDate(v.maha.endDay)}</div>
     <div class="dasha-line"><strong>Антардаша:</strong> ${DASHA_RU[v.antar.lord]} — до ${v.toDate(v.antar.endDay)}</div>
     <div class="dasha-line"><strong>Пратьянтара:</strong> ${DASHA_RU[v.prat.lord]} — до ${v.toDate(v.prat.endDay)}</div>
-    <p class="muted" style="margin-top:8px">Периоды по накшатре Луны при рождении (стартовый владыка — ${DASHA_RU[v.birthLord]}); 365,25 дн./год.</p>
+    <p style="margin-top:10px"><strong>Махадаша ${DASHA_RU[v.maha.lord]}</strong> — большая глава жизни: ${DASHA_EFFECT[v.maha.lord]}</p>
+    <p><strong>Антардаша ${DASHA_RU[v.antar.lord]}</strong> — что особенно активно сейчас: ${DASHA_EFFECT[v.antar.lord]}</p>
+    <p class="muted" style="margin-top:8px">Махадаша — крупный жизненный этап, антардаша — его текущий под-период; вместе показывают, какие темы судьбы работают именно теперь.</p>
   </div>`;
 }
 
@@ -1173,9 +1191,9 @@ function pastLifeBlock(positions, lagSign){
   const keNak=NAKSHATRAS[Math.floor(nd(positions['Ke'].lon)/(360/27))].name;
   const lord5=SIGN_LORDS[(lagSign+4)%12], lord5H=((sgn(lord5)-lagSign+12)%12)+1;
   const occ5=['Su','Mo','Ma','Me','Ju','Ve','Sa','Ra','Ke'].filter(p=>house(p)===5).map(p=>P_NAMES[p]);
-  const who=NATIVE_SEX==='m'?'мужчина':'женщина';
+  const whoPhrase=NATIVE_SEX==='m'?'этот мужчина уже проживал':'эта женщина уже проживала';
   return `<div class="nadi-block"><h3>Возможная прошлая жизнь</h3>
-    <p><strong>Кету — ${SIGN_NAMES[keS]}, накшатра ${keNak}, ${keH}-й дом.</strong> Прошлая натура: ${KETU_SIGN_PAST[keS]}. Вероятная роль: ${KETU_HOUSE_ROLE[keH-1]} (сфера «${HOUSE_AREA[keH-1]}»). Скорее всего, этот ${who} уже проживал(а) подобное и приходит сюда зрелой душой.</p>
+    <p><strong>Кету — ${SIGN_NAMES[keS]}, накшатра ${keNak}, ${keH}-й дом.</strong> Прошлая натура: ${KETU_SIGN_PAST[keS]}. Вероятная роль: ${KETU_HOUSE_ROLE[keH-1]} (сфера «${HOUSE_AREA[keH-1]}»). Скорее всего, ${whoPhrase} подобный опыт и приходит сюда зрелой душой.</p>
     <p><strong>Что принесено из прошлого:</strong> зрелое умение в этой области — даётся легко, почти «по памяти», это сильная сторона характера. <strong>Что стоит отпустить:</strong> склонность снова и снова повторять знакомые роли и избегать нового именно здесь — в этом кармический тупик Кету.</p>
     <p><strong>Раху — ${SIGN_NAMES[raS]}, ${raH}-й дом.</strong> Задача этой жизни — расти через сферу «${HOUSE_AREA[raH-1]}», осваивая качества знака ${SIGN_NAMES[raS]}. Поначалу непривычно и тревожно, но именно здесь приходят развитие, опыт и признание.</p>
     <p><strong>5-й дом</strong> (пурва-пунья, заслуги прошлых жизней): владыка — ${P_NAMES[lord5]} в ${lord5H}-м доме${occ5.length?'; в самом 5-м доме — '+occ5.join(', '):'; планет в 5-м доме нет'}. Здесь — врождённые дары и «накопленная удача», которая открывается через сферу «${HOUSE_AREA[lord5H-1]}».</p>
@@ -1238,6 +1256,40 @@ function renderSvgNorth(positions, lagnaSign){
   return svg.join('\n');
 }
 
+/* ── Предназначение: профессии/занятия по 10-му дому и сильным планетам ── */
+const PROFESSIONS={
+  Su:['руководство, управление, госслужба','политика и власть, администрирование','медицина (сердце), офтальмология','ювелирное дело, работа с золотом','публичные и лидерские роли'],
+  Mo:['работа с людьми, психология, забота','медицина, уход, диетология','гостеприимство, общепит, гостиницы','недвижимость, вода, путешествия','искусство, поэзия, публичные выступления'],
+  Ma:['инженерия, техника, IT','хирургия, стоматология','силовые структуры, армия, спорт','строительство, металл, земля','предпринимательство в конкурентных сферах'],
+  Me:['торговля, бизнес, финансы','писательство, журналистика, языки','IT, программирование, аналитика','образование, консалтинг','медиа, связь, посредничество'],
+  Ju:['преподавание, наука, право','финансы, банки, консалтинг','духовные и философские сферы','медицина, наставничество','издательское дело, управление'],
+  Ve:['искусство, музыка, дизайн','мода, красота, индустрия роскоши','психология, дипломатия, отношения','кино, развлечения, творчество','торговля предметами комфорта'],
+  Sa:['производство, инженерия, труд','юриспруденция, госструктуры','недвижимость, сельское хозяйство, добыча','наука, исследования, долгие проекты','социальная работа и служение'],
+  Ra:['IT, инновации, нестандартные ниши','заграница, импорт-экспорт, авиация','реклама, медиа, политтехнологии','фармацевтика, химия, исследования','всё новое и технологичное'],
+  Ke:['эзотерика, целительство, астрология','точные расчёты, исследования, IT','медицина, фармация','духовные практики, уединённый труд','аналитика и работа «за кадром»']
+};
+function purposeBlock(positions, lagSign){
+  const sgn=p=>Math.floor(positions[p].lon/30);
+  const house=p=>((sgn(p)-lagSign+12)%12)+1;
+  const lord10=SIGN_LORDS[(lagSign+9)%12], lagLord=SIGN_LORDS[lagSign];
+  const grahas=['Su','Mo','Ma','Me','Ju','Ve','Sa'];
+  const in10=grahas.filter(p=>house(p)===10);
+  const strong=grahas.filter(p=>{const q=nadiQuality(p,sgn(p));return q==='exalt'||q==='own';});
+  const key=[...new Set([lord10,...in10,...strong,lagLord].filter(Boolean))];
+  const profs=[...new Set(key.flatMap(p=>PROFESSIONS[p]||[]))].slice(0,12);
+  const drivers=[
+    '10-й дом (карьера) ведёт '+P_NAMES[lord10],
+    in10.length?'в 10-м доме — '+in10.map(p=>P_NAMES[p]).join(', '):null,
+    strong.length?'сильнейшие планеты — '+strong.map(p=>P_NAMES[p]).join(', '):null
+  ].filter(Boolean);
+  return `<div class="nadi-block"><h3>Предназначение — где ждёт успех</h3>
+    <p>На призвание указывают: ${drivers.join('; ')}; асцендентом управляет ${P_NAMES[lagLord]}.</p>
+    <p><strong>Сферы, профессии и занятия, в которых раскрывается потенциал:</strong></p>
+    <ul class="purpose-list">${profs.map(x=>`<li>${x}</li>`).join('')}</ul>
+    <p class="muted">Ориентир по 10-му дому и сильным планетам; конкретный путь уточняется по всей карте и текущей даше.</p>
+  </div>`;
+}
+
 /* ── Соединения планет (в одном знаке) — трактовка пары из NADI_DESC ── */
 function conjunctionsBlock(positions){
   const P=['Su','Mo','Ma','Me','Ju','Ve','Sa','Ra','Ke'];
@@ -1286,9 +1338,9 @@ function renderNadi(chart){
      <div class="nadi-chart-wrap">${chartSvg}</div>`
     +renderAnalysis(positions,nadiLines,lagnaSign,dateStr,city)
     +conjunctionsBlock(positions)
+    +purposeBlock(positions,lagnaSign)
     +yogasBlock(positions,lagnaSign)
     +dashaBlock(chart)
-    +maitriBlock(positions)
     +extrasBlock(chart,positions,lagnaSign)
     +pastLifeBlock(positions,lagnaSign);
 }
