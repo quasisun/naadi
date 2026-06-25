@@ -125,6 +125,7 @@ details.upaya .db li{margin:3px 0}
 .dasha-line{margin:5px 0}
 .purpose-list{margin:6px 0 0;padding-left:20px}
 .purpose-list li{margin:4px 0}
+.src-cite{font-size:.85em;color:var(--c-ink-soft);font-style:italic}
 .varga-row{margin:0 0 12px;font-size:var(--fs-small)}
 .varga-row select{margin-top:6px;max-width:100%}
 table.varga-table{border-collapse:collapse;font-size:.8rem;width:100%;margin-top:4px}
@@ -825,6 +826,79 @@ function getNadiDesc(planet, lord){
   return NADI_DESC[key1] || NADI_DESC[key2] || null;
 }
 
+/* ── Нади-комбинации из классических источников (с цитированием) ──
+   bnn = Bhrigu Nandi Nadi (Р.Г. Рао); sn = Predicting Through Navamsa and
+   Nadi Astrology (Sivam Sundaram / C.S. Patel); nr = Naadi Research, ч.2.
+   Спутник {с.падеж} — словоформы супруга по полу (gz). */
+const NADI_SRC_SHORT={bnn:'Бхригу Нанди Нади',sn:'Сивам Сундарам',nr:'Naadi Research 2'};
+const NADI_SOURCES_FULL=[
+  'Bhrigu Nandi Nadi — Р. Г. Рао',
+  'Predicting Through Navamsa and Nadi Astrology — Sivam Sundaram (C. S. Patel)',
+  'Naadi Research, часть 2',
+  'Nadi Astrology Combinations — Gautam Verma (по Умангу Танедже): справочник дом-комбинаций событий'
+];
+const SRC_COMBOS={
+  'Su_Ju':{src:['nr','bnn'],text:'Помогающая, но не себе в убыток натура; интуиция и «Радж-Пратап-йога» — госслужба для отца и натива, удачливый отец. Высокая должность или повышение после возвращения из-за рубежа, связь с учреждениями высшего образования и религии.'},
+  'Su_Mo':{src:['bnn','sn'],text:'Отец-торговец, со временем меняет занятие. Если Солнце и Луна по одну сторону оси Раху–Кету — мало помощи от родителей и братьев/сестёр.'},
+  'Su_Ma':{src:['bnn'],text:'У отца есть земельная собственность; торговля техникой или металлом. В связке с Раху — болезни, нужна молитва.'},
+  'Su_Me':{src:['bnn','nr'],text:'Дружественная и «знаменитая» комбинация, благоприятна для образования; отец — интеллектуал, учёный, писатель или крупный торговец; натив часто перенимает дело отца.'},
+  'Su_Ve':{src:['bnn','nr'],text:'Отец состоятелен и живёт на широкую ногу, любит роскошь; нередко указывает на связь помимо законного брака (или 2–3 брака отца).'},
+  'Su_Sa':{src:['bnn','sn'],text:'Отец на госслужбе (часто невысокая должность) или связан с земледелием; при поражении отец недолговечен. При сильном Солнце в 9-м — враг под контролем; при сильном Сатурне — наоборот, давление и разногласия с отцом.'},
+  'Su_Ra':{src:['bnn','nr','sn'],text:'Вынужденный брак; «Панчама-доша» — поражение 5-го дома (нет или недолговечные дети, особенно сыновья). Подъём в карьере и политике при транзите Раху; нужны умилостивительные обряды Раху.'},
+  'Su_Ke':{src:['bnn','nr'],text:'Поклонение семейному божеству (кулдевата); отец связан с религиозным учреждением, маслами или госслужбой. В 5-м доме (с Раху в 7-м) — поражение темы детей.'},
+  'Mo_Ma':{src:['bnn'],text:'Земля и скот по линии матери, земледелие; у матери бывают трудности; при контакте с ретро-Марсом или Раху — утрата старшей сестры.'},
+  'Mo_Me':{src:['nr','bnn'],text:'«Капат-йога» (обман): натива могут обмануть в близких, друзья или при сделках с недвижимостью; в тяжёлом варианте — риск к концу жизни остаться без средств. Делает набожным и сведущим в писаниях.'},
+  'Mo_Ju':{src:['bnn'],text:'Имущество и земля по линии матери (приданое); при слабой Луне натива обманут, не получит законного; учёба может возобновиться спустя годы.'},
+  'Mo_Ve':{src:['nr','bnn','sn'],text:'Караки искусства и красоты: артистизм, музыкальность, привлекательность; склонность к роскоши и тратам. В роду — тема повторного брака или вдовства; «Венера-Луна» добавляет тягу к спиртному, спекуляциям и потерям.'},
+  'Mo_Sa':{src:['bnn','sn'],text:'Активация Сатурна приносит брак; при поражении — отравление или гибель из-за разочарования. Транзитный Сатурн по натальной Луне (джанма-шани) даёт страдания, особенно в антардаше Марса/Раху; при оси узлов между ними — разлад с матерью.'},
+  'Mo_Ra':{src:['bnn','nr'],text:'Мать болезненна; большие расходы и потери «как море»; опасные простуды и пневмония; риск выкидыша.'},
+  'Mo_Ke':{src:['bnn','nr'],text:'Заграничные поездки и паломничества; конфликты в отношениях; часто много дочерей; помогает умилостивление Кету и Луны.'},
+  'Ma_Me':{src:['nr','bnn'],text:'Даёт землю и недвижимость, но мешает образованию: прерывистая, задержанная речь, замкнутость; ссорящиеся члены семьи, грубоватость в общении.'},
+  'Ma_Ju':{src:['bnn','sn'],text:'Родовая земельная собственность (особенно при экзальтации Юпитера); супруг(а) «из прошлой жизни», нередко высокого положения. Транзитное соединение приносит богатство и удачу в делах.'},
+  'Ma_Ve':{src:['nr','bnn','sn'],text:'«Хеартх-йога»: активная жизнь, помощь другим даже в ущерб себе; дом и земля, рождение сына и дочери. Враждебно — ссоры и соперничество в паре, доминирование {с.gen}, трудно копить; с Кету — тяжёлая для брака (тяжбы, развод).'},
+  'Ma_Sa':{src:['bnn','sn','nr'],text:'Инженерное дело; железная дисциплина, но большие трудности и задержки (особенно после ~38 лет), задержка брака, утрата земли при размене знаков. Транзит Сатурна по Марсу — остановки в работе, спад дохода, риск происшествий.'},
+  'Ma_Ra':{src:['nr','bnn'],text:'«Кантака/Аштама-доша» — «йога несчастного случая»: опасность для жизни, в огненных знаках минимум два происшествия; потеря или ранняя утрата брата, перерыв в образовании, упрямство. Нужна умилостивление Раху и Марса.'},
+  'Ma_Ke':{src:['nr','bnn'],text:'«Тьяга» — отречение и самоотдача; инженерные знания; прерывание учёбы (Кету в 5-м к Марсу), упрямый нрав; нага-доша — разлад с братьями; при транзите Сатурна — падение престижа, тяжбы.'},
+  'Me_Ju':{src:['nr','bnn','sn'],text:'«Гуру-буддхи»-йога: сильный интеллект, тяга к двум образованиям, учёность и добрый совет; при поражении — лишь среднее образование. Если ось Раху–Кету между ними — дети не ладят с нативом.'},
+  'Me_Ve':{src:['nr','bnn'],text:'Связь с искусствами и торговлей (ткани, химия); в Деве — Нича-Бханга Раджа-йога, при обмене домами — большое богатство, образованность {с.gen}; при сожжении Солнцем — помехи в учёбе.'},
+  'Me_Sa':{src:['nr','bnn'],text:'Дружественно, но даёт «Бхайя-йогу» (робость) и лень, слабый интерес к учёбе; вместе с тем — инженерия, работа в учебном заведении, казначейство, имя при скромном достатке.'},
+  'Me_Ra':{src:['nr','bnn'],text:'«Баху-видья-йога» — разносторонние знания; указывает на унаследованное от родителей имущество и землю.'},
+  'Me_Ke':{src:['bnn'],text:'Трудности в образовании; учёность в политологии и торговом праве; честный работник религиозного учреждения; помогает умилостивление семейного божества.'},
+  'Ju_Ve':{src:['nr','bnn','sn'],text:'Любовь и забота о детях и друзьях; работа учителя или в учебном/медицинском учреждении; рождение детей при транзите Юпитера к Венере; связи с влиятельными людьми. При варготтаме — примирение с врагом.'},
+  'Ju_Sa':{src:['nr','bnn','sn'],text:'«Маха-Бхагья-йога»: рост и возвышение, экономический подъём при транзите Сатурна по Юпитеру; солидная госдолжность, земля. Соединение раз в ~20 лет — крупная поворотная точка жизни.'},
+  'Ju_Ra':{src:['nr','bnn','sn'],text:'«Гуру-Чандала»-йога: ортодоксально неблагоприятна, но при транзите Сатурна даёт лучшее положение; знание мантр, заграничные поездки; болезни — нарывы, жар, происшествия в пути.'},
+  'Ju_Ke':{src:['bnn','sn'],text:'Хитроватый, но глубоко духовный человек; тапасья и поклонение Шиве или Богине «из прошлой жизни»; владение землёй (с Сатурном); при транзите враг или начальник становится другом.'},
+  'Sa_Ve':{src:['bnn','nr','sn'],text:'Друзья: семейное счастье и рост достатка после брака; профессия в финансах, казначействе, бухгалтерии, торговле; при транзите Сатурна по Венере (~40 лет) — доход {с.gen}, недвижимость на {с.acc}. С Раху — у {с.gen} «ветровые» болезни.'},
+  'Sa_Ra':{src:['nr','bnn','sn'],text:'«Питру-карма» — служение старшим и несколько объектов недвижимости; высокое образование и работа в финансовой/инвестиционной корпорации, земля и торговля; с Марсом — прерванное образование.'},
+  'Sa_Ke':{src:['nr','bnn','sn'],text:'«Ланготи-йога» (с Марсом): садху, санньяси, пуджари; тема завершения кармы, смерти и мокши; работа в учреждении пандитов или ради «освобождения»; очень независимый, вспыльчивый нрав.'},
+  'Ve_Ke':{src:['sn','nr'],text:'В карте — негармоничный брак, риск разлуки или развода; защита есть, если у {с.gen} Венера или хозяин 7-го связан с Раху. Даёт духовную отрешённость и «мокшу».'},
+  'Ve_Ra':{src:['bnn','sn','nr'],text:'Тема связи помимо брака в роду; чаще дочери, чем сыновья; вдовство; в мужской карте — флирт и множество женских связей; внезапные блага через женщин и искусство, но возможен спад достатка в даше после Кету.'}
+};
+function srcCombo(a,b){ return SRC_COMBOS[a+'_'+b]||SRC_COMBOS[b+'_'+a]||null; }
+function srcBlockHtml(a,b){
+  const s=srcCombo(a,b); if(!s) return '';
+  const cites=(s.src||[]).map(k=>NADI_SRC_SHORT[k]||k).join(', ');
+  return `<div style="margin-top:6px;padding-top:6px;border-top:1px dashed var(--c-line)"><span style="color:var(--c-orange);font-weight:700">Из нади-источников:</span> ${gz(s.text)}${cites?` <span class="src-cite">[${cites}]</span>`:''}</div>`;
+}
+// Полное тело трактовки пары: NADI_DESC + слой из источников (с учётом пола)
+function comboBodyHtml(a,b){
+  const d=getNadiDesc(a,b); let inner='';
+  if(d){
+    inner+=`<div style="font-weight:700;letter-spacing:.04em;color:var(--tcd);margin-bottom:6px;text-transform:uppercase">${d.name}</div>`;
+    if(d.positive&&d.positive!=='—') inner+=`<div style="margin-bottom:4px"><span style="color:#2E8B57;font-weight:700">Благоприятное:</span> ${gz(d.positive)}</div>`;
+    if(d.negative) inner+=`<div style="margin-bottom:4px"><span style="color:#CC2200;font-weight:700">Сложности:</span> ${gz(d.negative)}</div>`;
+    if(d.upaya) inner+=`<div><span style="color:var(--c-red);font-weight:700">Упайи:</span> ${gz(d.upaya)}</div>`;
+  }
+  inner+=srcBlockHtml(a,b);
+  return inner;
+}
+function sourcesBlock(){
+  return `<div class="nadi-block"><h3>Источники трактовок</h3>
+    <p class="muted">Нади-комбинации в трактовках опираются на классические нади-тексты:</p>
+    <ul class="purpose-list">${NADI_SOURCES_FULL.map(s=>`<li>${s}</li>`).join('')}</ul>
+  </div>`;
+}
+
 // Южноиндийская карта (SVG). sign → [col,row], 0=Овен
 const SIGN_POS=[[1,0],[2,0],[3,0],[3,1],[3,2],[3,3],[2,3],[1,3],[0,3],[0,2],[0,1],[0,0]];
 const CELL=88, PAD=4, TOTAL=4*CELL+2*PAD;
@@ -956,17 +1030,12 @@ function renderAnalysis(positions, nadiLines, lagnaSign, dateStr, city){
   const sorted=[...nadiLines].sort((a,b)=>{const order={exalt:0,friend:1,neutral:2,enemy:3,debil:4};return(order[a.quality]||2)-(order[b.quality]||2);});
   for(const l of sorted){
     const qLabel=QUALITY_LABEL[l.quality]||l.quality;
-    const desc=getNadiDesc(l.planet,l.lord);
-    const descHtml=desc?`
+    const inner=comboBodyHtml(l.planet,l.lord);
+    const descHtml=inner?`
       <div class="nadi-expand-btn" onclick="this.nextElementSibling.classList.toggle('open');this.classList.toggle('open')" style="margin-top:6px;cursor:pointer;font-size:.85em;color:var(--c-red);font-weight:700;letter-spacing:.04em">
-        ▸ Значение и упайи
+        ▸ Значение, упайи и источники
       </div>
-      <div class="nadi-desc-body" style="display:none;margin-top:6px;padding:10px 12px;background:rgba(255,255,255,.7);border-radius:8px;border-left:3px solid ${QUALITY_COLOR[l.quality]};line-height:1.7;color:var(--br)">
-        <div style="font-weight:700;letter-spacing:.04em;color:var(--tcd);margin-bottom:6px;text-transform:uppercase">${desc.name}</div>
-        ${desc.positive&&desc.positive!=='—'?`<div style="margin-bottom:4px"><span style="color:#2E8B57;font-weight:700">Благоприятное:</span> ${gz(desc.positive)}</div>`:''}
-        ${desc.negative?`<div style="margin-bottom:4px"><span style="color:#CC2200;font-weight:700">Сложности:</span> ${gz(desc.negative)}</div>`:''}
-        ${desc.upaya?`<div><span style="color:var(--c-red);font-weight:700">Упайи:</span> ${gz(desc.upaya)}</div>`:''}
-      </div>`:'';
+      <div class="nadi-desc-body" style="display:none;margin-top:6px;padding:10px 12px;background:rgba(255,255,255,.7);border-radius:8px;border-left:3px solid ${QUALITY_COLOR[l.quality]};line-height:1.7;color:var(--br)">${inner}</div>`:'';
     nadiItems+=`<div class="nadi-item ${l.quality}" style="flex-direction:column;align-items:stretch">
       <div style="display:flex;align-items:center;gap:8px">
         <span style="color:${P_COLOR[l.planet]};font-weight:600;font-size:1.1em">${P_GLYPH[l.planet]}</span>
@@ -1328,12 +1397,8 @@ function conjunctionsBlock(positions){
       <span style="color:${P_COLOR[it.a]};font-weight:700;font-size:1.1em">${P_GLYPH[it.a]}</span>
       <span style="color:${P_COLOR[it.b]};font-weight:700;font-size:1.1em">${P_GLYPH[it.b]}</span>
       <span style="flex:1"><strong>${P_NAMES[it.a]} + ${P_NAMES[it.b]}</strong> в ${SIGN_NAMES[it.sign]}</span></div>`;
-    const d=it.desc;
-    const body=d?`<div style="margin-top:6px;padding:10px 12px;background:rgba(255,255,255,.7);border-radius:8px;border-left:3px solid var(--c-orange);line-height:1.7">
-        ${d.positive&&d.positive!=='—'?`<div style="margin-bottom:4px"><span style="color:#2E8B57;font-weight:700">Благоприятное:</span> ${gz(d.positive)}</div>`:''}
-        ${d.negative?`<div style="margin-bottom:4px"><span style="color:#CC2200;font-weight:700">Сложности:</span> ${gz(d.negative)}</div>`:''}
-        ${d.upaya?`<div><span style="color:var(--c-red);font-weight:700">Упайи:</span> ${gz(d.upaya)}</div>`:''}
-      </div>`:'';
+    const inner=comboBodyHtml(it.a,it.b);
+    const body=inner?`<div style="margin-top:6px;padding:10px 12px;background:rgba(255,255,255,.7);border-radius:8px;border-left:3px solid var(--c-orange);line-height:1.7">${inner}</div>`:'';
     return `<div class="nadi-item" style="flex-direction:column;align-items:stretch">${head}${body}</div>`;
   }).join('');
   return `<div class="nadi-block"><h3>Соединения планет</h3><div class="nadi-list">${rows}</div>
@@ -1466,7 +1531,8 @@ function renderNadi(chart){
     +dashaBlock(chart)
     +fullDashaBlock(chart)
     +extrasBlock(chart,positions,lagnaSign)
-    +pastLifeBlock(positions,lagnaSign);
+    +pastLifeBlock(positions,lagnaSign)
+    +sourcesBlock();
 }
 
 /* ════════════════════════════════════════════════════════════════════
