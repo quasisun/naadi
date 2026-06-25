@@ -126,6 +126,16 @@ details.upaya .db li{margin:3px 0}
 .purpose-list{margin:6px 0 0;padding-left:20px}
 .purpose-list li{margin:4px 0}
 .src-cite{font-size:.85em;color:var(--c-ink-soft);font-style:italic}
+.gl{border-bottom:1px dotted var(--c-orange);cursor:help}
+.gl-tip{position:absolute;display:none;max-width:min(300px,86vw);padding:10px 12px;background:var(--c-ink);color:#fff;border-radius:8px;font-size:.85rem;line-height:1.45;z-index:60;box-shadow:0 6px 20px rgba(0,0,0,.28)}
+.nadi-nav{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:8px 0;margin:0 0 12px;background:var(--c-white);border-bottom:1px solid var(--c-line)}
+.nadi-nav .nav-hint{font-size:.78rem;color:var(--c-ink-soft);font-weight:700}
+.nadi-nav a{font-size:.78rem;padding:5px 10px;border:1px solid var(--c-line);border-radius:14px;color:var(--c-red);text-decoration:none;white-space:nowrap}
+.nadi-nav a:hover{background:var(--c-cream);border-color:var(--c-orange)}
+.nadi-block,.analysis-card,.chart-toggle,.result-card{scroll-margin-top:64px}
+table.bhava-table{width:100%;border-collapse:collapse;font-size:var(--fs-small)}
+table.bhava-table th,table.bhava-table td{padding:6px 8px;text-align:left;border-bottom:1px solid var(--c-line);vertical-align:top}
+table.bhava-table th{color:var(--c-red);text-transform:uppercase;font-size:.85em}
 .varga-row{margin:0 0 12px;font-size:var(--fs-small)}
 .varga-row select{margin-top:6px;max-width:100%}
 table.varga-table{border-collapse:collapse;font-size:.8rem;width:100%;margin-top:4px}
@@ -172,12 +182,16 @@ table.maitri-matrix tbody th{color:var(--c-ink);text-align:right}
   .astro-header { break-inside:avoid; }
   .nadi-block, .astro-card, .analysis-card, .result-card, .nadi-item, .island-box, details.upaya, table { break-inside:avoid; }
   a[href]:after { content:""; }
+  .nadi-nav { display:none !important; }
+  .gl { border-bottom:none; }
+  .gl-tip { display:none !important; }
   body { background:#fff; }
 }
 </style>
 </head>
 
 <body>
+<div id="glTip" class="gl-tip"></div>
 <div class="astro-app">
 
   <header class="astro-header">
@@ -899,6 +913,128 @@ function sourcesBlock(){
   </div>`;
 }
 
+/* ════════════════════════════════════════════════════════════════════
+   ГЛОССАРИЙ + ПОДСКАЗКИ (для начинающих): клик/наведение по подчёркнутому
+   ════════════════════════════════════════════════════════════════════ */
+const GLOSSARY={
+  Su:'Солнце — душа, воля, авторитет, отец, здоровье, жизненная сила.',
+  Mo:'Луна — ум и эмоции, мать, забота, дом, изменчивость, покой.',
+  Ma:'Марс — энергия, действие, смелость, борьба, страсть, братья.',
+  Me:'Меркурий — интеллект, речь, торговля, учёба, общение, расчёт.',
+  Ju:'Юпитер — мудрость, рост, удача, дети, учителя, вера, изобилие.',
+  Ve:'Венера — любовь, красота, удовольствия, брак, искусство, достаток.',
+  Sa:'Сатурн — дисциплина, труд, ограничения, задержки, зрелость, карма.',
+  Ra:'Раху — амбиции, одержимость, всё иностранное и нестандартное, рост через желания.',
+  Ke:'Кету — отрешённость, духовность, прошлый опыт, потери, мокша.',
+  s0:'Овен — огонь, кардинальный: напор, инициатива, лидерство. Управитель — Марс.',
+  s1:'Телец — земля, фиксированный: устойчивость, достаток, чувственность. Венера.',
+  s2:'Близнецы — воздух, двойственный: общение, ум, гибкость. Меркурий.',
+  s3:'Рак — вода, кардинальный: чувства, дом, забота. Луна.',
+  s4:'Лев — огонь, фиксированный: гордость, творчество, власть. Солнце.',
+  s5:'Дева — земля, двойственный: анализ, служение, детали. Меркурий.',
+  s6:'Весы — воздух, кардинальный: гармония, отношения, баланс. Венера.',
+  s7:'Скорпион — вода, фиксированный: страсть, тайное, трансформация. Марс.',
+  s8:'Стрелец — огонь, двойственный: вера, философия, странствия. Юпитер.',
+  s9:'Козерог — земля, кардинальный: дисциплина, статус, труд. Сатурн.',
+  s10:'Водолей — воздух, фиксированный: идеи, сообщество, нестандартность. Сатурн.',
+  s11:'Рыбы — вода, двойственный: сострадание, духовность, растворение. Юпитер.',
+  h1:'1-й дом (Лагна) — личность, тело, характер, внешность, начало жизни.',
+  h2:'2-й дом — деньги, семья, речь, еда, накопления, ценности.',
+  h3:'3-й дом — смелость, усилия, братья и сёстры, навыки, короткие поездки.',
+  h4:'4-й дом — дом, мать, недвижимость, покой, корни.',
+  h5:'5-й дом — дети, творчество, любовь, учёба, заслуги прошлого.',
+  h6:'6-й дом — здоровье, работа и служба, враги, долги, преодоление.',
+  h7:'7-й дом — партнёрство, брак, деловые союзы, публика.',
+  h8:'8-й дом — трансформации, тайное, наследство, кризисы, долголетие.',
+  h9:'9-й дом — удача, дхарма, учителя, отец, дальние страны, вера.',
+  h10:'10-й дом — карьера, статус, призвание, поступки, признание.',
+  h11:'11-й дом — доходы, друзья, цели, сообщество.',
+  h12:'12-й дом — расходы, потери, уединение, заграница, сон, освобождение.',
+  'лагна':'Лагна (асцендент) — восходящий знак в момент рождения; начало 1-го дома, «я» и тело.',
+  'накшатра':'Накшатра — лунная стоянка; 27 секторов зодиака по ~13°20′, каждая со своим характером и владыкой.',
+  'пада':'Пада — четверть накшатры (~3°20′); уточняет качества и слог имени.',
+  'даша':'Даша — планетный период жизни. В Вимшоттари 120 лет делятся между 9 планетами.',
+  'махадаша':'Махадаша — большой период жизни под управлением одной планеты (от 6 до 20 лет).',
+  'антардаша':'Антардаша — под-период внутри махадаши; показывает, какие темы активны сейчас.',
+  'пратьянтара':'Пратьянтара — под-период внутри антардаши, ещё более точный отрезок времени.',
+  'нади':'Нади — тонкая «связь»: планета в знаке тянет нади к владыке этого знака.',
+  'варга':'Варга — дробная карта: знак делится на части, давая отдельную карту для сферы жизни.',
+  'навамша':'Навамша (D9) — главная дробная карта: сила планет, брак и дхарма.',
+  'экзальтация':'Экзальтация — знак наивысшей силы планеты; её качества проявляются ярко.',
+  'падение':'Падение (ничча) — знак наибольшей слабости планеты; требует упай.',
+  'ретроградный':'Ретроградная планета визуально движется назад; её энергия обращена внутрь, кармична.',
+  'сожжённый':'Сожжённая планета — слишком близко к Солнцу, её сила «выгорает».',
+  'йога':'Йога — особое сочетание планет, дающее устойчивый результат (благой или сложный).',
+  'стеллиум':'Стеллиум — скопление нескольких планет в одном доме; мощный фокус на его теме.',
+  'упайя':'Упайя — средство гармонизации планеты: мантра, камень, пост, благотворительность.'
+};
+function gl(term,label){ const t=GLOSSARY[term]; return `<span class="gl" data-gl="${term}"${t?` title="${t.replace(/"/g,'')}"`:''}>${label}</span>`; }
+
+/* ── Планеты по домам (бхава-пхала) ── */
+const PLANET_BRINGS={
+  Su:'авторитет, волю и самовыражение',
+  Mo:'чувства, заботу и переменчивость',
+  Ma:'энергию, инициативу и напор',
+  Me:'ум, речь и предприимчивость',
+  Ju:'рост, мудрость и удачу',
+  Ve:'любовь, красоту и удовольствия',
+  Sa:'дисциплину, труд и ограничения',
+  Ra:'амбиции и тягу к новому и чужому',
+  Ke:'отрешённость и духовный поиск'
+};
+const HOUSE_THEME_SHORT=['личность и тело','деньги, семью и речь','смелость и братьев/сестёр','дом, мать и покой','детей, творчество и учёбу','здоровье, работу и преодоление','партнёрство и брак','перемены и тайное','удачу, дхарму и учителей','карьеру и статус','доходы и круг общения','уединение, заграницу и расходы'];
+function bhavaBlock(positions, lagSign){
+  const P=['Su','Mo','Ma','Me','Ju','Ve','Sa','Ra','Ke'];
+  const rows=P.map(p=>{
+    const sgn=Math.floor(positions[p].lon/30), h=((sgn-lagSign+12)%12)+1;
+    return `<tr><td>${gl(p,P_NAMES[p])}</td><td>${gl('h'+h,h+'-й')}</td><td>${gl('s'+sgn,SIGN_NAMES[sgn])}</td><td>привносит ${PLANET_BRINGS[p]} в сферу «${HOUSE_THEME_SHORT[h-1]}».</td></tr>`;
+  }).join('');
+  return `<div class="nadi-block"><h3>Планеты по домам</h3>
+    <div class="table-scroll"><table class="bhava-table"><thead><tr><th>Планета</th><th>Дом</th><th>Знак</th><th>Что даёт</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <p class="muted">Дом — сфера жизни, где сильнее всего проявляется планета (равнознаковые дома от Лагны). Нажмите на планету, дом или знак — появится пояснение.</p>
+  </div>`;
+}
+
+/* ── Скопления планет (2–6 в одном доме) ── */
+function stelliumBlock(positions, lagSign){
+  const P=['Su','Mo','Ma','Me','Ju','Ve','Sa','Ra','Ke'], byHouse={};
+  P.forEach(p=>{const h=((Math.floor(positions[p].lon/30)-lagSign+12)%12)+1; (byHouse[h]=byHouse[h]||[]).push(p);});
+  const clusters=Object.entries(byHouse).filter(([h,ps])=>ps.length>=2).sort((a,b)=>b[1].length-a[1].length);
+  if(!clusters.length) return `<div class="nadi-block"><h3>Скопления планет</h3><p class="muted">Скоплений из двух и более планет в одном доме нет — энергия распределена по карте равномернее.</p></div>`;
+  const force={2:'двойной акцент',3:'сильный стеллиум',4:'мощный стеллиум',5:'исключительная концентрация',6:'редчайшая концентрация'};
+  const items=clusters.map(([h,ps])=>{
+    const n=ps.length, names=ps.map(p=>gl(p,P_NAMES[p])).join(', ');
+    const benefics=ps.filter(p=>['Ju','Ve','Me','Mo'].includes(p)).length;
+    const malefics=ps.filter(p=>['Sa','Ma','Ra','Ke','Su'].includes(p)).length;
+    const tone=benefics>malefics?'преимущественно поддерживающая':malefics>benefics?'требующая осознанной работы':'смешанная';
+    return `<div class="nadi-item" style="flex-direction:column;align-items:stretch">
+      <div><strong>${n} ${n>=5?'планет':'планеты'} в ${gl('h'+Number(h),h+'-м доме')}</strong> — ${force[n]||('концентрация '+n+' планет')}: ${names}.</div>
+      <div style="margin-top:4px">Тема «${HOUSE_THEME_SHORT[h-1]}» становится центральной в жизни; энергия ${tone}. Чем больше планет в доме, тем сильнее судьба «закручена» вокруг этой сферы.</div>
+    </div>`;
+  }).join('');
+  return `<div class="nadi-block"><h3>Скопления планет</h3><div class="nadi-list">${items}</div>
+    <p class="muted">Несколько планет в одном доме многократно усиливают его тему. ${gl('стеллиум','Что такое стеллиум?')}</p>
+  </div>`;
+}
+
+/* ── Навигация по разделам (липкое оглавление) ── */
+function navShort(t){
+  const map=[['Анализ карты','Анализ'],['Планеты по','Планеты'],['Дробные','Варги'],['Соединения','Соединения'],['Скопления','Стеллиумы'],['Предназнач','Призвание'],['йоги','Йоги'],['период жизни','Даша'],['Полная таблица','Все периоды'],['Баланс','Сводка'],['прошлая жизнь','Прошлая жизнь'],['Источники','Источники']];
+  for(const [k,v] of map) if(t.toLowerCase().includes(k.toLowerCase())) return v;
+  return t.slice(0,14);
+}
+function buildNadiNav(){
+  const out=document.getElementById('out-nadi');
+  if(!out||out.querySelector('.nadi-nav')) return;
+  const items=[];
+  const ct=out.querySelector('.chart-toggle'); if(ct){ ct.id='nb-chart'; items.push(['nb-chart','Карта']); }
+  const ac=out.querySelector('.analysis-card'); if(ac){ ac.id='nb-analysis'; items.push(['nb-analysis','Анализ']); }
+  out.querySelectorAll('.nadi-block').forEach((b,i)=>{ const h=b.querySelector('h3'); b.id='nb-'+i; items.push(['nb-'+i, navShort(h?h.textContent:'')]); });
+  const nav=document.createElement('nav'); nav.className='nadi-nav';
+  nav.innerHTML='<span class="nav-hint">Разделы:</span> '+items.map(([id,l])=>`<a href="#${id}">${l}</a>`).join('');
+  out.insertBefore(nav, out.firstChild);
+}
+
 // Южноиндийская карта (SVG). sign → [col,row], 0=Овен
 const SIGN_POS=[[1,0],[2,0],[3,0],[3,1],[3,2],[3,3],[2,3],[1,3],[0,3],[0,2],[0,1],[0,0]];
 const CELL=88, PAD=4, TOTAL=4*CELL+2*PAD;
@@ -1020,10 +1156,10 @@ function renderAnalysis(positions, nadiLines, lagnaSign, dateStr, city){
     const lordSign=Math.floor(positions[lord].lon/30);
     const dot=q==='own'?'':'<span class="quality-dot" style="background:'+QUALITY_COLOR[q]+'"></span>';
     tableRows+=`<tr>
-      <td style="color:${P_COLOR[p]};font-weight:600">${P_GLYPH[p]} ${P_NAMES[p]}</td>
-      <td>${SIGN_NAMES[sign]} ${dg}°${mn>9?mn:'0'+mn}'</td>
+      <td style="color:${P_COLOR[p]};font-weight:600">${P_GLYPH[p]} ${gl(p,P_NAMES[p])}</td>
+      <td>${gl('s'+sign,SIGN_NAMES[sign])} ${dg}°${mn>9?mn:'0'+mn}'</td>
       <td>${dot}${QUALITY_LABEL[q]||q}</td>
-      <td style="color:${P_COLOR[lord]}">${q==='own'?'—':P_NAMES[lord]+' ('+SIGN_NAMES[lordSign]+')'}</td>
+      <td style="color:${P_COLOR[lord]}">${q==='own'?'—':gl(lord,P_NAMES[lord])+' ('+gl('s'+lordSign,SIGN_NAMES[lordSign])+')'}</td>
     </tr>`;
   }
   let nadiItems='';
@@ -1148,9 +1284,9 @@ const DASHA_EFFECT={
 function dashaBlock(chart){
   const v=vimshottari(chart);
   return `<div class="nadi-block"><h3>Текущий период жизни (даша)</h3>
-    <div class="dasha-line"><strong>Махадаша:</strong> ${DASHA_RU[v.maha.lord]} — до ${v.toDate(v.maha.endDay)}</div>
-    <div class="dasha-line"><strong>Антардаша:</strong> ${DASHA_RU[v.antar.lord]} — до ${v.toDate(v.antar.endDay)}</div>
-    <div class="dasha-line"><strong>Пратьянтара:</strong> ${DASHA_RU[v.prat.lord]} — до ${v.toDate(v.prat.endDay)}</div>
+    <div class="dasha-line"><strong>${gl('махадаша','Махадаша')}:</strong> ${DASHA_RU[v.maha.lord]} — до ${v.toDate(v.maha.endDay)}</div>
+    <div class="dasha-line"><strong>${gl('антардаша','Антардаша')}:</strong> ${DASHA_RU[v.antar.lord]} — до ${v.toDate(v.antar.endDay)}</div>
+    <div class="dasha-line"><strong>${gl('пратьянтара','Пратьянтара')}:</strong> ${DASHA_RU[v.prat.lord]} — до ${v.toDate(v.prat.endDay)}</div>
     <p style="margin-top:10px"><strong>Махадаша ${DASHA_RU[v.maha.lord]}</strong> — большая глава жизни: ${DASHA_EFFECT[v.maha.lord]}</p>
     <p><strong>Антардаша ${DASHA_RU[v.antar.lord]}</strong> — что особенно активно сейчас: ${DASHA_EFFECT[v.antar.lord]}</p>
     <p class="muted" style="margin-top:8px">Махадаша — крупный жизненный этап, антардаша — его текущий под-период; вместе показывают, какие темы судьбы работают именно теперь.</p>
@@ -1524,8 +1660,10 @@ function renderNadi(chart){
      </div>
      <div class="nadi-chart-wrap">${chartSvg}</div>`
     +renderAnalysis(positions,nadiLines,lagnaSign,dateStr,city)
+    +bhavaBlock(positions,lagnaSign)
     +vargaBlock(positions)
     +conjunctionsBlock(positions)
+    +stelliumBlock(positions,lagnaSign)
     +purposeBlock(positions,lagnaSign)
     +yogasBlock(positions,lagnaSign)
     +dashaBlock(chart)
@@ -1533,6 +1671,7 @@ function renderNadi(chart){
     +extrasBlock(chart,positions,lagnaSign)
     +pastLifeBlock(positions,lagnaSign)
     +sourcesBlock();
+  buildNadiNav();
 }
 
 /* ════════════════════════════════════════════════════════════════════
@@ -1851,6 +1990,23 @@ document.getElementById('year').textContent=new Date().getFullYear();
 ensureEngine(); // начинаем грузить эфемериды сразу
 // зимнее/летнее время зависит от даты — пересчитываем пояс при её смене
 document.getElementById('bdate').addEventListener('change',()=>{ if(BIRTH_ZONE && applyZoneOffset()) setZoneStatus(); });
+// подсказки-глоссарий: клик по подчёркнутому термину (планета, знак, дом, период)
+(function(){
+  var tip=document.getElementById('glTip'); if(!tip) return;
+  document.addEventListener('click',function(e){
+    var el=e.target.closest?e.target.closest('[data-gl]'):null;
+    if(el && GLOSSARY[el.getAttribute('data-gl')]){
+      tip.textContent=GLOSSARY[el.getAttribute('data-gl')];
+      tip.style.display='block';
+      var r=el.getBoundingClientRect();
+      var left=Math.max(8,Math.min(window.scrollX+r.left, window.scrollX+document.documentElement.clientWidth-tip.offsetWidth-8));
+      tip.style.left=left+'px'; tip.style.top=(window.scrollY+r.bottom+6)+'px';
+      e.preventDefault(); e.stopPropagation();
+    } else if(!(e.target.closest && e.target.closest('#glTip'))){
+      tip.style.display='none';
+    }
+  });
+})();
 </script>
 </body>
 </html>
