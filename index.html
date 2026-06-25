@@ -136,6 +136,18 @@ details.upaya .db li{margin:3px 0}
 table.bhava-table{width:100%;border-collapse:collapse;font-size:var(--fs-small)}
 table.bhava-table th,table.bhava-table td{padding:6px 8px;text-align:left;border-bottom:1px solid var(--c-line);vertical-align:top}
 table.bhava-table th{color:var(--c-red);text-transform:uppercase;font-size:.85em}
+svg text[data-gl]:hover{text-decoration:underline}
+/* Режимы доступа: форма расчёта — только астрологу; гороскоп по ссылке — чтение */
+#formSection{display:none}
+#accessGate{display:none}
+.share-row{display:none;margin:0 0 22px}
+.reader-banner{display:none}
+body.astro-mode #formSection{display:block}
+body.astro-mode .share-row{display:block}
+body:not(.astro-mode):not(.reader-mode) #accessGate{display:block}
+body.reader-mode .reader-banner{display:block;margin:0 0 16px;padding:12px 16px;border-radius:var(--radius-sm);background:var(--c-cream);border:1px solid var(--c-line);border-left:4px solid var(--c-orange);font-weight:700;color:var(--c-ink)}
+body.reader-mode #engineBadge{display:none}
+.share-box{width:100%;margin-top:8px;font-size:13px;padding:10px 12px;border:2px solid var(--c-line);border-radius:var(--radius-sm)}
 .varga-row{margin:0 0 12px;font-size:var(--fs-small)}
 .varga-row select{margin-top:6px;max-width:100%}
 table.varga-table{border-collapse:collapse;font-size:.8rem;width:100%;margin-top:4px}
@@ -199,7 +211,23 @@ table.maitri-matrix tbody th{color:var(--c-ink);text-align:right}
     <p class="astro-subtitle">Расчёты по карте рождения</p>
   </header>
 
+  <div id="readerBanner" class="reader-banner"></div>
+
   <div id="engineBadge" class="engine-badge loading">Загрузка швейцарских эфемерид…</div>
+
+  <!-- ШЛЮЗ ДОСТУПА: расчёт новых карт — только для астролога -->
+  <section class="astro-section" id="accessGate">
+    <h2 class="astro-h2">Доступ к расчёту</h2>
+    <div class="astro-card">
+      <p>Расчёт новых гороскопов — для астролога. Введите код доступа. Готовый гороскоп клиент открывает по ссылке без кода.</p>
+      <div class="astro-field">
+        <label for="accessCode">Код доступа</label>
+        <input id="accessCode" type="password" placeholder="код" onkeydown="if(event.key==='Enter')checkCode()">
+      </div>
+      <button class="astro-btn astro-btn--block" onclick="checkCode()">Войти</button>
+      <p id="accessMsg" class="geo-status muted"></p>
+    </div>
+  </section>
 
   <!-- ОБЩАЯ ФОРМА ДАННЫХ РОЖДЕНИЯ (на все три инструмента) -->
   <section class="astro-section" id="formSection">
@@ -260,6 +288,13 @@ table.maitri-matrix tbody th{color:var(--c-ink);text-align:right}
 
   <div class="print-row">
     <button class="astro-btn astro-btn--ghost print-btn" onclick="printAll()">Скачать PDF (все три раздела)</button>
+  </div>
+
+  <div class="share-row">
+    <button class="astro-btn astro-btn--ghost" onclick="shareLink()">Поделиться ссылкой</button>
+    <input id="shareBox" class="share-box" readonly hidden>
+    <p id="shareMsg" class="geo-status muted"></p>
+    <p class="muted" style="margin-top:4px"><a href="#" onclick="lockApp();return false">Выйти из режима астролога</a></p>
   </div>
 
   <!-- Панель: Нади-карта -->
@@ -612,6 +647,64 @@ function printAll(){
   if(!CHART){ alert('Сначала заполните данные рождения и нажмите «Рассчитать».'); return; }
   renderNadi(CHART); renderNaksh(CHART); renderYantra(CHART);
   setTimeout(function(){ window.print(); }, 80);
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   ДОСТУП И ШЕРИНГ
+   Расчёт новых карт — за кодом (режим астролога). Готовый гороскоп
+   открывается по ссылке (?g=…) в режиме чтения, без доступа к расчёту.
+   ВНИМАНИЕ: это клиентская защита (код виден в исходнике страницы) —
+   она удерживает обычного клиента, но не является криптостойкой.
+   ════════════════════════════════════════════════════════════════════ */
+const APP_CODE='svetlana-1008';   // ← КОД ДОСТУПА АСТРОЛОГА. Поменяйте на свой.
+function lsGet(k){try{return localStorage.getItem(k);}catch(e){return null;}}
+function lsSet(k,v){try{localStorage.setItem(k,v);}catch(e){}}
+function lsDel(k){try{localStorage.removeItem(k);}catch(e){}}
+function unlockApp(){ document.body.classList.add('astro-mode'); document.body.classList.remove('reader-mode'); }
+function lockApp(){ lsDel('jyotish_unlocked'); document.body.classList.remove('astro-mode'); const a=document.getElementById('accessCode'); if(a) a.value=''; window.scrollTo(0,0); }
+function checkCode(){
+  const m=document.getElementById('accessMsg');
+  if((document.getElementById('accessCode').value||'').trim()===APP_CODE){ lsSet('jyotish_unlocked','1'); unlockApp(); }
+  else { m.className='geo-status'; m.textContent='Неверный код доступа.'; }
+}
+function pad2(n){return String(n).padStart(2,'0');}
+function buildShareLink(){
+  const f=CHART.input, place=document.getElementById('bplace').value.trim();
+  const payload={y:f.y,mo:f.mo,d:f.d,h:f.h,mi:f.mi,tz:f.tz,lat:f.lat,lon:f.lon,sex:f.sex,place:place,tab:activeTab,style:nadiChartStyle};
+  const g=btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+  return location.origin+location.pathname+'?g='+encodeURIComponent(g);
+}
+function decodeShare(g){ try{ return JSON.parse(decodeURIComponent(escape(atob(g)))); }catch(e){ return null; } }
+function shareLink(){
+  if(!CHART){ alert('Сначала рассчитайте гороскоп.'); return; }
+  const url=buildShareLink(), box=document.getElementById('shareBox'), msg=document.getElementById('shareMsg');
+  box.hidden=false; box.value=url; box.focus(); box.select();
+  if(navigator.clipboard) navigator.clipboard.writeText(url).catch(()=>{});
+  msg.className='geo-status muted';
+  msg.textContent='Ссылка готова и скопирована. Отправьте её клиенту — он откроет готовый гороскоп без доступа к расчёту.';
+}
+async function initAccess(){
+  const g=new URLSearchParams(location.search).get('g');
+  if(g){
+    const data=decodeShare(g);
+    if(data){
+      document.body.classList.add('reader-mode');
+      document.getElementById('bdate').value=`${data.y}-${pad2(data.mo)}-${pad2(data.d)}`;
+      document.getElementById('btime').value=`${pad2(data.h)}:${pad2(data.mi)}`;
+      document.getElementById('blat').value=data.lat;
+      document.getElementById('blon').value=data.lon;
+      document.getElementById('btz').value=data.tz;
+      const sx=document.getElementById('bsex'); if(sx) sx.value=data.sex||'f';
+      document.getElementById('bplace').value=data.place||'';
+      if(data.style) nadiChartStyle=data.style;
+      document.getElementById('readerBanner').textContent='Ваш гороскоп · '+(data.place||'')+' · '+pad2(data.d)+'.'+pad2(data.mo)+'.'+data.y+', '+pad2(data.h)+':'+pad2(data.mi);
+      if(data.tab) switchTab(data.tab);
+      await computeAll();
+      return;
+    }
+  }
+  if(lsGet('jyotish_unlocked')==='1') unlockApp();
+  // иначе по умолчанию показывается шлюз доступа (через CSS)
 }
 
 /* ── Переключение вкладок ── */
@@ -1091,7 +1184,7 @@ function renderSvg(positions, nadiLines, lagnaSign){
     }
     svg.push(`<text x="${x+4}" y="${y+11}" font-size="8" font-family="serif" fill="#6b625c" opacity=".75">${s+1}</text>`);
     const shortName=['Ов','Тл','Бл','Ра','Ле','Де','Вс','Ск','Стр','Кз','Вд','Ры'][s];
-    svg.push(`<text x="${x+CELL/2}" y="${y+CELL-6}" font-size="9" font-family="serif" fill="#6b625c" text-anchor="middle" font-style="italic" opacity=".85">${shortName}</text>`);
+    svg.push(`<text x="${x+CELL/2}" y="${y+CELL-6}" font-size="9" font-family="serif" fill="#6b625c" text-anchor="middle" font-style="italic" opacity=".85" data-gl="s${s}" style="cursor:pointer">${shortName}</text>`);
   }
   const cx=PAD+CELL, cy=PAD+CELL;
   svg.push(`<rect x="${cx}" y="${cy}" width="${2*CELL}" height="${2*CELL}" fill="#faf4ea" stroke="#ef5024" stroke-opacity=".5" stroke-width="1.5"/>`);
@@ -1130,8 +1223,8 @@ function renderSvg(positions, nadiLines, lagnaSign){
       const lon=positions[p].lon;
       const dg=Math.floor(lon%30), mn=Math.floor((lon%30-dg)*60);
       const col2=P_COLOR[p];
-      svg.push(`<text x="${bx+CELL/2}" y="${py}" font-size="15" font-family="Arial,sans-serif" fill="${col2}" text-anchor="middle" font-weight="bold">${P_GLYPH[p]}</text>`);
-      svg.push(`<text x="${bx+CELL/2}" y="${py+12}" font-size="9.5" font-family="Arial,sans-serif" fill="${col2}" text-anchor="middle">${dg}°${mn>9?mn:'0'+mn}'</text>`);
+      svg.push(`<text x="${bx+CELL/2}" y="${py}" font-size="15" font-family="Arial,sans-serif" fill="${col2}" text-anchor="middle" font-weight="bold" data-gl="${p}" style="cursor:pointer">${P_GLYPH[p]}</text>`);
+      svg.push(`<text x="${bx+CELL/2}" y="${py+12}" font-size="9.5" font-family="Arial,sans-serif" fill="${col2}" text-anchor="middle" data-gl="${p}" style="cursor:pointer">${dg}°${mn>9?mn:'0'+mn}'</text>`);
       py+=26;
     }
     if(isLagna && planets.length===0){
@@ -1477,7 +1570,7 @@ function renderSvgNorth(positions, lagnaSign, nadiLines){
     let y=cy+2-(ps.length-1)*8;
     for(const p of ps){
       const lon=positions[p].lon, dg=Math.floor(lon%30);
-      svg.push(`<text x="${cx}" y="${y}" font-size="15" font-family="Arial,sans-serif" fill="${P_COLOR[p]}" text-anchor="middle" font-weight="bold">${P_GLYPH[p]}<tspan font-size="9" font-weight="normal"> ${dg}°</tspan></text>`);
+      svg.push(`<text x="${cx}" y="${y}" font-size="15" font-family="Arial,sans-serif" fill="${P_COLOR[p]}" text-anchor="middle" font-weight="bold" data-gl="${p}" style="cursor:pointer">${P_GLYPH[p]}<tspan font-size="9" font-weight="normal"> ${dg}°</tspan></text>`);
       y+=17;
     }
   }
@@ -1580,7 +1673,7 @@ function renderVargaChart(positions, D){
     const c=SIGN_POS[s], x=PAD+c[0]*CELL, y=PAD+c[1]*CELL, isLag=s===vlag;
     svg.push(`<rect x="${x}" y="${y}" width="${CELL}" height="${CELL}" fill="${isLag?'#fce4da':'#ffffff'}" stroke="#ef5024" stroke-opacity="${isLag?0.85:0.3}" stroke-width="${isLag?2:1}"/>`);
     svg.push(`<text x="${x+4}" y="${y+11}" font-size="8" font-family="serif" fill="#6b625c" opacity=".7">${s+1}</text>`);
-    svg.push(`<text x="${x+CELL/2}" y="${y+CELL-6}" font-size="9" font-family="serif" fill="#6b625c" text-anchor="middle" font-style="italic" opacity=".85">${SIGN_SHORT[s]}</text>`);
+    svg.push(`<text x="${x+CELL/2}" y="${y+CELL-6}" font-size="9" font-family="serif" fill="#6b625c" text-anchor="middle" font-style="italic" opacity=".85" data-gl="s${s}" style="cursor:pointer">${SIGN_SHORT[s]}</text>`);
   }
   const cx=PAD+CELL, cy=PAD+CELL;
   svg.push(`<rect x="${cx}" y="${cy}" width="${2*CELL}" height="${2*CELL}" fill="#faf4ea" stroke="#ef5024" stroke-opacity=".5" stroke-width="1.5"/>`);
@@ -1590,7 +1683,7 @@ function renderVargaChart(positions, D){
   for(const ss in bySign){
     const s=+ss, c=SIGN_POS[s], bx=PAD+c[0]*CELL, by=PAD+c[1]*CELL;
     let py=by+24;
-    for(const p of bySign[s]){ svg.push(`<text x="${bx+CELL/2}" y="${py}" font-size="15" font-family="Arial,sans-serif" fill="${P_COLOR[p]}" text-anchor="middle" font-weight="bold">${P_GLYPH[p]}</text>`); py+=21; }
+    for(const p of bySign[s]){ svg.push(`<text x="${bx+CELL/2}" y="${py}" font-size="15" font-family="Arial,sans-serif" fill="${P_COLOR[p]}" text-anchor="middle" font-weight="bold" data-gl="${p}" style="cursor:pointer">${P_GLYPH[p]}</text>`); py+=21; }
   }
   svg.push('</svg>'); return svg.join('\n');
 }
@@ -2007,6 +2100,7 @@ document.getElementById('bdate').addEventListener('change',()=>{ if(BIRTH_ZONE &
     }
   });
 })();
+initAccess();
 </script>
 </body>
 </html>
