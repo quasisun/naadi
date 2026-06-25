@@ -125,6 +125,18 @@ details.upaya .db li{margin:3px 0}
 .dasha-line{margin:5px 0}
 .purpose-list{margin:6px 0 0;padding-left:20px}
 .purpose-list li{margin:4px 0}
+.varga-row{margin:0 0 12px;font-size:var(--fs-small)}
+.varga-row select{margin-top:6px;max-width:100%}
+table.varga-table{border-collapse:collapse;font-size:.8rem;width:100%;margin-top:4px}
+table.varga-table th,table.varga-table td{padding:5px 7px;border:1px solid var(--c-line);text-align:center;white-space:nowrap}
+table.varga-table thead th,table.varga-table tbody th{color:var(--c-red)}
+details.dasha-maha{border:1px solid var(--c-line);border-radius:var(--radius-sm);margin-bottom:6px;background:#fff;overflow:hidden}
+details.dasha-maha summary{padding:9px 12px;cursor:pointer;font-size:var(--fs-small);list-style:none}
+details.dasha-maha summary::-webkit-details-marker{display:none}
+table.dasha-table{border-collapse:collapse;width:100%;font-size:.82rem}
+table.dasha-table th,table.dasha-table td{padding:5px 12px;border-top:1px solid var(--c-line);text-align:left}
+table.dasha-table th{color:var(--c-red);text-transform:uppercase;font-size:.85em}
+tr.dasha-cur{background:rgba(239,80,36,.14);font-weight:700}
 table.maitri-matrix{border-collapse:collapse;font-size:.82rem;margin:0 auto}
 table.maitri-matrix th,table.maitri-matrix td{padding:6px 9px;text-align:center;border:1px solid var(--c-line);white-space:nowrap}
 table.maitri-matrix thead th{color:var(--c-red)}
@@ -619,7 +631,7 @@ const P_SAN  ={Su:'Sūrya',Mo:'Candra',Ma:'Kuja',Me:'Budha',
                Ju:'Guru',Ve:'Śukra',Sa:'Śani',Ra:'Rāhu',Ke:'Ketu'};
 const P_COLOR={Su:'#E52B50',Mo:'#87CEEB',Ma:'#ff4040',Me:'#009B77',
                Ju:'#D4A017',Ve:'#C77',Sa:'#4444AA',Ra:'#86261c',Ke:'#888888'};
-const P_GLYPH={Su:'☉',Mo:'☽',Ma:'♂',Me:'☿',Ju:'♃',Ve:'♀',Sa:'♄',Ra:'☊',Ke:'☋'};
+const P_GLYPH={Su:'Со',Mo:'Лу',Ma:'Ма',Me:'Ме',Ju:'Юп',Ve:'Ве',Sa:'Са',Ra:'Ра',Ke:'Ке'};
 
 const OWN_SIGNS={Su:[4],Mo:[3],Ma:[0,7],Me:[2,5],Ju:[8,11],Ve:[1,6],Sa:[9,10],Ra:[],Ke:[]};
 const EXALT={Su:0,Mo:1,Ma:9,Me:5,Ju:3,Ve:11,Sa:6,Ra:2,Ke:8};
@@ -903,14 +915,14 @@ function renderSvg(positions, nadiLines, lagnaSign){
     const[col,row]=SIGN_POS[s];
     const bx=PAD+col*CELL, by=PAD+row*CELL;
     const isLagna=s===lagnaSign;
-    let py=by+18;
+    let py=by+20;
     for(const p of planets){
       const lon=positions[p].lon;
       const dg=Math.floor(lon%30), mn=Math.floor((lon%30-dg)*60);
       const col2=P_COLOR[p];
-      svg.push(`<text x="${bx+CELL/2}" y="${py}" font-size="11" font-family="serif" fill="${col2}" text-anchor="middle" font-weight="bold">${P_GLYPH[p]}</text>`);
-      svg.push(`<text x="${bx+CELL/2}" y="${py+10}" font-size="7.5" font-family="serif" fill="${col2}" text-anchor="middle">${dg}°${mn>9?mn:'0'+mn}'</text>`);
-      py+=22;
+      svg.push(`<text x="${bx+CELL/2}" y="${py}" font-size="15" font-family="Arial,sans-serif" fill="${col2}" text-anchor="middle" font-weight="bold">${P_GLYPH[p]}</text>`);
+      svg.push(`<text x="${bx+CELL/2}" y="${py+12}" font-size="9.5" font-family="Arial,sans-serif" fill="${col2}" text-anchor="middle">${dg}°${mn>9?mn:'0'+mn}'</text>`);
+      py+=26;
     }
     if(isLagna && planets.length===0){
       svg.push(`<text x="${bx+CELL/2}" y="${by+CELL/2}" font-size="9" font-family="serif" fill="#df2227" text-anchor="middle">Лагна</text>`);
@@ -1229,7 +1241,7 @@ function extrasBlock(chart, positions, lagSign){
 }
 
 /* ── Северо-индийская (ромбовидная) карта: дома фиксированы, Лагна в 1-м ── */
-function renderSvgNorth(positions, lagnaSign){
+function renderSvgNorth(positions, lagnaSign, nadiLines){
   const S=400, svg=[];
   svg.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${S}" height="${S}" viewBox="0 0 ${S} ${S}" style="display:block">`);
   svg.push(`<rect width="${S}" height="${S}" fill="#faf4ea"/>`);
@@ -1238,18 +1250,30 @@ function renderSvgNorth(positions, lagnaSign){
   svg.push(`<path d="M2,2 L${S-2},${S-2} M${S-2},2 L2,${S-2}" ${st}/>`);
   svg.push(`<path d="M${S/2},2 L${S-2},${S/2} L${S/2},${S-2} L2,${S/2} Z" ${st}/>`);
   const C={1:[200,108],2:[100,42],3:[42,100],4:[108,200],5:[42,300],6:[100,358],7:[200,292],8:[300,358],9:[358,300],10:[292,200],11:[358,100],12:[300,42]};
+  const houseOf=s=>((s-lagnaSign+12)%12)+1;
+  // нади-линии между центрами домов (как на южной карте)
+  if(nadiLines&&nadiLines.length){
+    for(const q of ['debil','enemy','neutral','friend','exalt']) for(const l of nadiLines){
+      if(l.quality!==q||l.fromSign===l.toSign) continue;
+      const a=C[houseOf(l.fromSign)], b=C[houseOf(l.toSign)];
+      const x1=a[0],y1=a[1],x2=b[0],y2=b[1];
+      const color=QUALITY_COLOR[q], alpha=(q==='debil'||q==='exalt')?'0.7':'0.5', sw=(q==='exalt'||q==='debil')?2:1.4;
+      const mx=(x1+x2)/2,my=(y1+y2)/2,dx=x2-x1,dy=y2-y1,cx2=mx-dy*0.12,cy2=my+dx*0.12;
+      svg.push(`<path d="M${x1},${y1} Q${cx2},${cy2} ${x2},${y2}" stroke="${color}" stroke-width="${sw}" fill="none" opacity="${alpha}" stroke-dasharray="${q==='neutral'?'4,3':''}" stroke-linecap="round"/>`);
+    }
+  }
   const planets=['Su','Mo','Ma','Me','Ju','Ve','Sa','Ra','Ke'];
   const byHouse={};
-  for(const p of planets){ const s=Math.floor(positions[p].lon/30); const h=((s-lagnaSign+12)%12)+1; (byHouse[h]=byHouse[h]||[]).push(p); }
+  for(const p of planets){ (byHouse[houseOf(Math.floor(positions[p].lon/30))]??=[]).push(p); }
   for(let h=1;h<=12;h++){
-    const sign=(lagnaSign+h-1)%12, [cx,cy]=C[h];
-    svg.push(`<text x="${cx}" y="${cy-22}" font-size="9" font-family="serif" fill="#6b625c" text-anchor="middle">${sign+1}${h===1?' · Ла':''}</text>`);
+    const sign=(lagnaSign+h-1)%12, c=C[h], cx=c[0], cy=c[1];
+    svg.push(`<text x="${cx}" y="${cy-24}" font-size="9" font-family="serif" fill="#6b625c" text-anchor="middle">${sign+1}${h===1?' · Ла':''}</text>`);
     const ps=byHouse[h]||[];
-    let y=cy+4-(ps.length-1)*7;
+    let y=cy+2-(ps.length-1)*8;
     for(const p of ps){
       const lon=positions[p].lon, dg=Math.floor(lon%30);
-      svg.push(`<text x="${cx}" y="${y}" font-size="12" font-family="serif" fill="${P_COLOR[p]}" text-anchor="middle" font-weight="bold">${P_GLYPH[p]}<tspan font-size="8" font-weight="normal"> ${dg}°</tspan></text>`);
-      y+=15;
+      svg.push(`<text x="${cx}" y="${y}" font-size="15" font-family="Arial,sans-serif" fill="${P_COLOR[p]}" text-anchor="middle" font-weight="bold">${P_GLYPH[p]}<tspan font-size="9" font-weight="normal"> ${dg}°</tspan></text>`);
+      y+=17;
     }
   }
   svg.push('</svg>');
@@ -1319,13 +1343,111 @@ function conjunctionsBlock(positions){
 let nadiChartStyle='south';
 function setChartStyle(s){ nadiChartStyle=s; if(CHART) renderNadi(CHART); }
 
+/* ── Дробные карты (варги) ── */
+function vargaSign(lon, D){
+  const sign=Math.floor(lon/30), deg=lon-sign*30;
+  switch(D){
+    case 1: return sign;
+    case 2: { const fh=deg<15, odd=(sign%2===0); return odd?(fh?4:3):(fh?3:4); }       // Хора: Лев(4)/Рак(3)
+    case 3: { const part=Math.floor(deg/10); return (sign+part*4)%12; }                 // Дреккана: 1/5/9
+    case 7: { const part=Math.floor(deg/(30/7)); const st=(sign%2===0)?sign:(sign+6)%12; return (st+part)%12; }
+    case 9: return Math.floor(lon/(30/9))%12;                                           // Навамша
+    case 10:{ const part=Math.floor(deg/3); const st=(sign%2===0)?sign:(sign+8)%12; return (st+part)%12; }
+    case 12:{ const part=Math.floor(deg/2.5); return (sign+part)%12; }
+    default: return sign;
+  }
+}
+const VARGAS=[
+  {D:1,name:'Раши D1 — тело, жизнь'},
+  {D:9,name:'Навамша D9 — брак, дхарма, сила планет'},
+  {D:10,name:'Дашамша D10 — карьера, статус'},
+  {D:7,name:'Саптамша D7 — дети'},
+  {D:12,name:'Двадашамша D12 — родители'},
+  {D:3,name:'Дреккана D3 — братья/сёстры'},
+  {D:2,name:'Хора D2 — богатство'}
+];
+let selectedVarga=9;
+function setVarga(D){ selectedVarga=+D; if(CHART) renderNadi(CHART); }
+const SIGN_SHORT=['Ов','Тл','Бл','Ра','Ле','Де','Вс','Ск','Стр','Кз','Вд','Ры'];
+function renderVargaChart(positions, D){
+  const P=['Su','Mo','Ma','Me','Ju','Ve','Sa','Ra','Ke'];
+  const vlag=vargaSign(positions.La.lon, D), vs={}; P.forEach(p=>vs[p]=vargaSign(positions[p].lon, D));
+  const svg=[], W=TOTAL, H=TOTAL;
+  svg.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" style="display:block">`);
+  svg.push(`<rect width="${W}" height="${H}" fill="#faf4ea" rx="2"/>`);
+  for(let s=0;s<12;s++){
+    const c=SIGN_POS[s], x=PAD+c[0]*CELL, y=PAD+c[1]*CELL, isLag=s===vlag;
+    svg.push(`<rect x="${x}" y="${y}" width="${CELL}" height="${CELL}" fill="${isLag?'#fce4da':'#ffffff'}" stroke="#ef5024" stroke-opacity="${isLag?0.85:0.3}" stroke-width="${isLag?2:1}"/>`);
+    svg.push(`<text x="${x+4}" y="${y+11}" font-size="8" font-family="serif" fill="#6b625c" opacity=".7">${s+1}</text>`);
+    svg.push(`<text x="${x+CELL/2}" y="${y+CELL-6}" font-size="9" font-family="serif" fill="#6b625c" text-anchor="middle" font-style="italic" opacity=".85">${SIGN_SHORT[s]}</text>`);
+  }
+  const cx=PAD+CELL, cy=PAD+CELL;
+  svg.push(`<rect x="${cx}" y="${cy}" width="${2*CELL}" height="${2*CELL}" fill="#faf4ea" stroke="#ef5024" stroke-opacity=".5" stroke-width="1.5"/>`);
+  svg.push(`<text x="${cx+CELL}" y="${cy+CELL-2}" font-size="18" font-family="serif" fill="#df2227" text-anchor="middle" font-weight="bold">D${D}</text>`);
+  svg.push(`<text x="${cx+CELL}" y="${cy+CELL+18}" font-size="8" font-family="serif" fill="#ef5024" text-anchor="middle" letter-spacing="1">ВАРГА</text>`);
+  const bySign={}; P.forEach(p=>{(bySign[vs[p]]=bySign[vs[p]]||[]).push(p);});
+  for(const ss in bySign){
+    const s=+ss, c=SIGN_POS[s], bx=PAD+c[0]*CELL, by=PAD+c[1]*CELL;
+    let py=by+24;
+    for(const p of bySign[s]){ svg.push(`<text x="${bx+CELL/2}" y="${py}" font-size="15" font-family="Arial,sans-serif" fill="${P_COLOR[p]}" text-anchor="middle" font-weight="bold">${P_GLYPH[p]}</text>`); py+=21; }
+  }
+  svg.push('</svg>'); return svg.join('\n');
+}
+function vargaTable(positions){
+  const P=['Su','Mo','Ma','Me','Ju','Ve','Sa','Ra','Ke'], Ds=[1,9,10,7,12,3,2];
+  const head=Ds.map(D=>`<th>D${D}</th>`).join('');
+  const rows=P.map(p=>`<tr><th>${P_NAMES[p]}</th>${Ds.map(D=>`<td>${SIGN_SHORT[vargaSign(positions[p].lon,D)]}</td>`).join('')}</tr>`).join('');
+  return `<div class="table-scroll"><table class="varga-table"><thead><tr><th>Планета</th>${head}</tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+function vargaBlock(positions){
+  const opts=VARGAS.map(v=>`<option value="${v.D}" ${v.D===selectedVarga?'selected':''}>${v.name}</option>`).join('');
+  return `<div class="nadi-block"><h3>Дробные карты (варги)</h3>
+    <div class="varga-row"><label>Карта: <select onchange="setVarga(this.value)">${opts}</select></label></div>
+    <div class="nadi-chart-wrap">${renderVargaChart(positions, selectedVarga)}</div>
+    ${vargaTable(positions)}
+    <p class="muted" style="margin-top:8px">Навамша (D9) — главная дробная карта: показывает истинную силу планет, тему брака и дхармы. Остальные варги уточняют отдельные сферы (карьера D10, дети D7, родители D12 и др.). В таблице — знак каждой планеты в каждой варге.</p>
+  </div>`;
+}
+
+/* ── Полная таблица периодов (все махадаши и подпериоды) ── */
+function vimshottariFull(chart){
+  const moon=nd(chart.pos.Moon), nakSize=360/27;
+  const nakIdx=Math.floor(moon/nakSize), frac=(moon%nakSize)/nakSize, startIdx=nakIdx%9;
+  const f=chart.input;
+  const birthMs=Date.UTC(f.y,f.mo-1,f.d,f.h,f.mi)-f.tz*3600000;
+  const elapsedDays=(Date.now()-birthMs)/86400000;
+  let startDay=-frac*DASHA_YEARS[DASHA_LORDS[startIdx]]*VYEAR;
+  const mahas=[];
+  for(let k=0;k<9;k++){
+    const lord=DASHA_LORDS[(startIdx+k)%9], dur=DASHA_YEARS[lord]*VYEAR;
+    mahas.push({lord,startDay,endDay:startDay+dur,antars:dashaSubPeriods(lord,startDay,dur)});
+    startDay+=dur;
+  }
+  const toDate=day=>{const dt=new Date(birthMs+Math.max(0,day)*86400000);return String(dt.getUTCDate()).padStart(2,'0')+'.'+String(dt.getUTCMonth()+1).padStart(2,'0')+'.'+dt.getUTCFullYear();};
+  return {mahas,elapsedDays,toDate};
+}
+function fullDashaBlock(chart){
+  const v=vimshottariFull(chart);
+  const cur=d=>v.elapsedDays>=d.startDay&&v.elapsedDays<d.endDay;
+  const sections=v.mahas.filter(m=>m.endDay>0).map(m=>{
+    const isCur=cur(m);
+    const antarRows=m.antars.filter(a=>a.endDay>0).map(a=>`<tr class="${cur(a)?'dasha-cur':''}"><td>${DASHA_RU[a.lord]}</td><td>${v.toDate(a.startDay)} — ${v.toDate(a.endDay)}</td></tr>`).join('');
+    return `<details class="dasha-maha"${isCur?' open':''}>
+      <summary><strong>Махадаша ${DASHA_RU[m.lord]}</strong> · ${v.toDate(m.startDay)} — ${v.toDate(m.endDay)}${isCur?' · <span style="color:var(--c-red)">сейчас</span>':''}</summary>
+      <table class="dasha-table"><thead><tr><th>Антардаша</th><th>Период</th></tr></thead><tbody>${antarRows}</tbody></table>
+    </details>`;
+  }).join('');
+  return `<div class="nadi-block"><h3>Полная таблица периодов (Вимшоттари)</h3>${sections}
+    <p class="muted" style="margin-top:8px">9 махадаш на ~120 лет; раскрой период, чтобы увидеть антардаши (подпериоды). Текущие выделены.</p></div>`;
+}
+
 function renderNadi(chart){
   NATIVE_SEX=(chart.input.sex==='m')?'m':'f';
   const positions=nadiPositions(chart);
   const lagnaSign=Math.floor(positions.La.lon/30);
   const nadiLines=buildNadiLines(positions);
   const chartSvg = nadiChartStyle==='north'
-    ? renderSvgNorth(positions,lagnaSign)
+    ? renderSvgNorth(positions,lagnaSign,nadiLines)
     : renderSvg(positions,nadiLines,lagnaSign);
   const f=chart.input;
   const dateStr=`${String(f.d).padStart(2,'0')}.${String(f.mo).padStart(2,'0')}.${f.y}`;
@@ -1337,10 +1459,12 @@ function renderNadi(chart){
      </div>
      <div class="nadi-chart-wrap">${chartSvg}</div>`
     +renderAnalysis(positions,nadiLines,lagnaSign,dateStr,city)
+    +vargaBlock(positions)
     +conjunctionsBlock(positions)
     +purposeBlock(positions,lagnaSign)
     +yogasBlock(positions,lagnaSign)
     +dashaBlock(chart)
+    +fullDashaBlock(chart)
     +extrasBlock(chart,positions,lagnaSign)
     +pastLifeBlock(positions,lagnaSign);
 }
