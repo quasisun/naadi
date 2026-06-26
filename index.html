@@ -127,7 +127,7 @@ details.upaya .db li{margin:3px 0}
 .purpose-list li{margin:4px 0}
 .src-cite{font-size:.85em;color:var(--c-ink-soft);font-style:italic}
 .gl{border-bottom:1px dotted var(--c-orange);cursor:help}
-.gl-tip{position:absolute;display:none;max-width:min(300px,86vw);padding:10px 12px;background:var(--c-ink);color:#fff;border-radius:8px;font-size:.85rem;line-height:1.45;z-index:60;box-shadow:0 6px 20px rgba(0,0,0,.28)}
+.gl-tip{position:absolute;display:none;max-width:min(300px,86vw);padding:10px 12px;background:#2a2320;color:#fff;border-radius:8px;font-family:Arial,sans-serif;font-size:.85rem;line-height:1.45;z-index:60;box-shadow:0 6px 20px rgba(0,0,0,.28)}
 .nadi-nav{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:8px 0;margin:0 0 12px;background:var(--c-white);border-bottom:1px solid var(--c-line)}
 .nadi-nav .nav-hint{font-size:.78rem;color:var(--c-ink-soft);font-weight:700}
 .nadi-nav a{font-size:.78rem;padding:5px 10px;border:1px solid var(--c-line);border-radius:14px;color:var(--c-red);text-decoration:none;white-space:nowrap}
@@ -1340,6 +1340,7 @@ function nadiPositions(chart){
 const DASHA_LORDS=['Ketu','Venus','Sun','Moon','Mars','Rahu','Jupiter','Saturn','Mercury'];
 const DASHA_YEARS={Ketu:7,Venus:20,Sun:6,Moon:10,Mars:7,Rahu:18,Jupiter:16,Saturn:19,Mercury:17};
 const DASHA_RU={Ketu:'Кету',Venus:'Венера',Sun:'Солнце',Moon:'Луна',Mars:'Марс',Rahu:'Раху',Jupiter:'Юпитер',Saturn:'Сатурн',Mercury:'Меркурий'};
+const STD2ABBR={Sun:'Su',Moon:'Mo',Mars:'Ma',Mercury:'Me',Jupiter:'Ju',Venus:'Ve',Saturn:'Sa',Rahu:'Ra',Ketu:'Ke'};
 const VYEAR=365.25;
 function dashaSubPeriods(lord,startDay,durDays){
   const idx=DASHA_LORDS.indexOf(lord); const out=[]; let s=startDay;
@@ -1376,12 +1377,15 @@ const DASHA_EFFECT={
 };
 function dashaBlock(chart){
   const v=vimshottari(chart);
+  const ml=gl(STD2ABBR[v.maha.lord],DASHA_RU[v.maha.lord]);
+  const al=gl(STD2ABBR[v.antar.lord],DASHA_RU[v.antar.lord]);
+  const pl=gl(STD2ABBR[v.prat.lord],DASHA_RU[v.prat.lord]);
   return `<div class="nadi-block"><h3>Текущий период жизни (даша)</h3>
-    <div class="dasha-line"><strong>${gl('махадаша','Махадаша')}:</strong> ${DASHA_RU[v.maha.lord]} — до ${v.toDate(v.maha.endDay)}</div>
-    <div class="dasha-line"><strong>${gl('антардаша','Антардаша')}:</strong> ${DASHA_RU[v.antar.lord]} — до ${v.toDate(v.antar.endDay)}</div>
-    <div class="dasha-line"><strong>${gl('пратьянтара','Пратьянтара')}:</strong> ${DASHA_RU[v.prat.lord]} — до ${v.toDate(v.prat.endDay)}</div>
-    <p style="margin-top:10px"><strong>Махадаша ${DASHA_RU[v.maha.lord]}</strong> — большая глава жизни: ${DASHA_EFFECT[v.maha.lord]}</p>
-    <p><strong>Антардаша ${DASHA_RU[v.antar.lord]}</strong> — что особенно активно сейчас: ${DASHA_EFFECT[v.antar.lord]}</p>
+    <div class="dasha-line"><strong>${gl('махадаша','Махадаша')}:</strong> ${ml} — до ${v.toDate(v.maha.endDay)}</div>
+    <div class="dasha-line"><strong>${gl('антардаша','Антардаша')}:</strong> ${al} — до ${v.toDate(v.antar.endDay)}</div>
+    <div class="dasha-line"><strong>${gl('пратьянтара','Пратьянтара')}:</strong> ${pl} — до ${v.toDate(v.prat.endDay)}</div>
+    <p style="margin-top:10px"><strong>Махадаша ${ml}</strong> — большая глава жизни: ${DASHA_EFFECT[v.maha.lord]}</p>
+    <p><strong>Антардаша ${al}</strong> — что особенно активно сейчас: ${DASHA_EFFECT[v.antar.lord]}</p>
     <p class="muted" style="margin-top:8px">Махадаша — крупный жизненный этап, антардаша — его текущий под-период; вместе показывают, какие темы судьбы работают именно теперь.</p>
   </div>`;
 }
@@ -1725,9 +1729,9 @@ function fullDashaBlock(chart){
   const cur=d=>v.elapsedDays>=d.startDay&&v.elapsedDays<d.endDay;
   const sections=v.mahas.filter(m=>m.endDay>0).map(m=>{
     const isCur=cur(m);
-    const antarRows=m.antars.filter(a=>a.endDay>0).map(a=>`<tr class="${cur(a)?'dasha-cur':''}"><td>${DASHA_RU[a.lord]}</td><td>${v.toDate(a.startDay)} — ${v.toDate(a.endDay)}</td></tr>`).join('');
+    const antarRows=m.antars.filter(a=>a.endDay>0).map(a=>`<tr class="${cur(a)?'dasha-cur':''}"><td>${gl(STD2ABBR[a.lord],DASHA_RU[a.lord])}</td><td>${v.toDate(a.startDay)} — ${v.toDate(a.endDay)}</td></tr>`).join('');
     return `<details class="dasha-maha"${isCur?' open':''}>
-      <summary><strong>Махадаша ${DASHA_RU[m.lord]}</strong> · ${v.toDate(m.startDay)} — ${v.toDate(m.endDay)}${isCur?' · <span style="color:var(--c-red)">сейчас</span>':''}</summary>
+      <summary><strong>Махадаша ${gl(STD2ABBR[m.lord],DASHA_RU[m.lord])}</strong> · ${v.toDate(m.startDay)} — ${v.toDate(m.endDay)}${isCur?' · <span style="color:var(--c-red)">сейчас</span>':''}</summary>
       <table class="dasha-table"><thead><tr><th>Антардаша</th><th>Период</th></tr></thead><tbody>${antarRows}</tbody></table>
     </details>`;
   }).join('');
