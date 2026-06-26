@@ -144,7 +144,10 @@ svg text[data-gl]:hover{text-decoration:underline}
 .reader-banner{display:none}
 body.astro-mode #formSection{display:block}
 body.astro-mode .share-row{display:block}
-body:not(.astro-mode):not(.reader-mode) #accessGate{display:block}
+body:not(.astro-mode):not(.reader-mode):not(.preview) #accessGate{display:block}
+body.preview #formSection{display:block}
+body.preview .print-row,body.preview .share-row{display:none}
+body.preview .tab[data-tab="naksh"],body.preview .tab[data-tab="yantra"]{display:none}
 body.reader-mode .reader-banner{display:block;margin:0 0 16px;padding:12px 16px;border-radius:var(--radius-sm);background:var(--c-cream);border:1px solid var(--c-line);border-left:4px solid var(--c-orange);font-weight:700;color:var(--c-ink)}
 body.reader-mode #engineBadge{display:none}
 .share-box{width:100%;margin-top:8px;font-size:13px;padding:10px 12px;border:2px solid var(--c-line);border-radius:var(--radius-sm)}
@@ -656,55 +659,101 @@ function printAll(){
    ВНИМАНИЕ: это клиентская защита (код виден в исходнике страницы) —
    она удерживает обычного клиента, но не является криптостойкой.
    ════════════════════════════════════════════════════════════════════ */
-const APP_CODE='svetlana-1008';   // ← КОД ДОСТУПА АСТРОЛОГА. Поменяйте на свой.
+// Три режима (стандарт платформы):
+//  ?preview=1  → открытое превью (форма + урезанный обзор + CTA на товар)
+//  #<JSON>     → готовый результат по ссылке (режим чтения), калькулятор скрыт
+//  иначе       → расчёт за кодом (SHA-256), разблокировка в localStorage
+const PREVIEW=/[?&]preview=1/.test(location.search);
+const GATE_HASH='9aaf689fbcdfe9f64a071f9cbe28ae44193fa218e72af24456f44bed64583b4d'; // SHA-256 кода доступа (по умолчанию 1008)
+const FULL_URL='ССЫЛКА_НА_ТОВАР_TILDA'; // ← ссылка на товар «полный отчёт» в корзине (вставить после создания товара)
 function lsGet(k){try{return localStorage.getItem(k);}catch(e){return null;}}
 function lsSet(k,v){try{localStorage.setItem(k,v);}catch(e){}}
 function lsDel(k){try{localStorage.removeItem(k);}catch(e){}}
-function unlockApp(){ document.body.classList.add('astro-mode'); document.body.classList.remove('reader-mode'); }
+function pad2(n){return String(n).padStart(2,'0');}
+function sha256hex(s){ return crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)).then(function(b){ return [].map.call(new Uint8Array(b),function(x){return x.toString(16).padStart(2,'0');}).join(''); }); }
+function unlockApp(){ document.body.classList.add('astro-mode'); }
 function lockApp(){ lsDel('jyotish_unlocked'); document.body.classList.remove('astro-mode'); const a=document.getElementById('accessCode'); if(a) a.value=''; window.scrollTo(0,0); }
 function checkCode(){
   const m=document.getElementById('accessMsg');
-  if((document.getElementById('accessCode').value||'').trim()===APP_CODE){ lsSet('jyotish_unlocked','1'); unlockApp(); }
-  else { m.className='geo-status'; m.textContent='Неверный код доступа.'; }
+  sha256hex((document.getElementById('accessCode').value||'').trim()).then(function(h){
+    if(h===GATE_HASH){ lsSet('jyotish_unlocked','1'); unlockApp(); }
+    else { m.className='geo-status'; m.textContent='Неверный код доступа.'; }
+  });
 }
-function pad2(n){return String(n).padStart(2,'0');}
+// Ссылка-результат: #<urlencode(JSON входных данных)> — этот же формат собирает портал после оплаты
 function buildShareLink(){
   const f=CHART.input, place=document.getElementById('bplace').value.trim();
-  const payload={y:f.y,mo:f.mo,d:f.d,h:f.h,mi:f.mi,tz:f.tz,lat:f.lat,lon:f.lon,sex:f.sex,place:place,tab:activeTab,style:nadiChartStyle};
-  const g=btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
-  return location.origin+location.pathname+'?g='+encodeURIComponent(g);
+  const payload={date:f.y+'-'+pad2(f.mo)+'-'+pad2(f.d),time:pad2(f.h)+':'+pad2(f.mi),tz:f.tz,lat:f.lat,lon:f.lon,sex:f.sex,place:place,tab:activeTab,style:nadiChartStyle};
+  return location.origin+location.pathname+'#'+encodeURIComponent(JSON.stringify(payload));
 }
-function decodeShare(g){ try{ return JSON.parse(decodeURIComponent(escape(atob(g)))); }catch(e){ return null; } }
+function readShareHash(){ if(!location.hash||location.hash.length<2) return null; try{ return JSON.parse(decodeURIComponent(location.hash.slice(1))); }catch(e){ return null; } }
 function shareLink(){
   if(!CHART){ alert('Сначала рассчитайте гороскоп.'); return; }
   const url=buildShareLink(), box=document.getElementById('shareBox'), msg=document.getElementById('shareMsg');
   box.hidden=false; box.value=url; box.focus(); box.select();
-  if(navigator.clipboard) navigator.clipboard.writeText(url).catch(()=>{});
+  if(navigator.clipboard) navigator.clipboard.writeText(url).catch(function(){});
   msg.className='geo-status muted';
   msg.textContent='Ссылка готова и скопирована. Отправьте её клиенту — он откроет готовый гороскоп без доступа к расчёту.';
 }
-async function initAccess(){
-  const g=new URLSearchParams(location.search).get('g');
-  if(g){
-    const data=decodeShare(g);
-    if(data){
-      document.body.classList.add('reader-mode');
-      document.getElementById('bdate').value=`${data.y}-${pad2(data.mo)}-${pad2(data.d)}`;
-      document.getElementById('btime').value=`${pad2(data.h)}:${pad2(data.mi)}`;
-      document.getElementById('blat').value=data.lat;
-      document.getElementById('blon').value=data.lon;
-      document.getElementById('btz').value=data.tz;
-      const sx=document.getElementById('bsex'); if(sx) sx.value=data.sex||'f';
-      document.getElementById('bplace').value=data.place||'';
-      if(data.style) nadiChartStyle=data.style;
-      document.getElementById('readerBanner').textContent='Ваш гороскоп · '+(data.place||'')+' · '+pad2(data.d)+'.'+pad2(data.mo)+'.'+data.y+', '+pad2(data.h)+':'+pad2(data.mi);
-      if(data.tab) switchTab(data.tab);
-      await computeAll();
-      return;
-    }
+// Заполнить форму из данных ссылки и посчитать (часовой пояс добираем из координат, если не задан)
+async function applyShareData(p){
+  document.getElementById('bdate').value=p.date||'';
+  document.getElementById('btime').value=p.time||'';
+  document.getElementById('blat').value=p.lat;
+  document.getElementById('blon').value=p.lon;
+  const sx=document.getElementById('bsex'); if(sx) sx.value=p.sex||'f';
+  document.getElementById('bplace').value=p.place||'';
+  if(p.style) nadiChartStyle=p.style;
+  let tz=p.tz;
+  if(tz===undefined||tz===null||tz===''){
+    try{ const zone=await detectZone(p.lat,p.lon); if(zone){ const dd=(p.date||'').split('-').map(Number), tt=(p.time||'12:00').split(':').map(Number); const o=tzOffsetForZone(zone,dd[0],dd[1],dd[2],tt[0],tt[1]); if(o!=null) tz=o; } }catch(e){}
+    if(tz===undefined||tz===null||tz==='') tz=0;
   }
-  if(lsGet('jyotish_unlocked')==='1') unlockApp();
-  // иначе по умолчанию показывается шлюз доступа (через CSS)
+  document.getElementById('btz').value=tz;
+  if(p.tab) switchTab(p.tab);
+  await computeAll();
+}
+// Урезанный вывод для бесплатного превью: карта + краткий обзор + CTA
+function renderNadiPreview(chart){
+  const positions=nadiPositions(chart);
+  const lagSign=Math.floor(positions.La.lon/30);
+  const svgHtml=renderSvg(positions,buildNadiLines(positions),lagSign);
+  const moonNak=NAKSHATRAS[Math.floor(nd(chart.pos.Moon)/(360/27))].name;
+  const strong=['Su','Mo','Ma','Me','Ju','Ve','Sa'].filter(function(p){var q=nadiQuality(p,Math.floor(positions[p].lon/30));return q==='exalt'||q==='own';}).map(function(p){return P_NAMES[p];});
+  const v=vimshottari(chart);
+  document.getElementById('out-nadi').innerHTML=
+   '<div class="nadi-chart-wrap">'+svgHtml+'</div>'
+   +'<div class="nadi-block"><h3>Краткий нади-обзор</h3>'
+     +'<p><strong>Лагна:</strong> '+SIGN_NAMES[lagSign]+' · <strong>Луна:</strong> '+SIGN_NAMES[signIdx(chart.pos.Moon)]+', накшатра '+moonNak+'</p>'
+     +'<p><strong>Сильные планеты:</strong> '+(strong.length?strong.join(', '):'—')+'</p>'
+     +'<p><strong>Текущая махадаша:</strong> '+DASHA_RU[v.maha.lord]+' (до '+v.toDate(v.maha.endDay)+')</p>'
+   +'</div>'
+   +'<div class="nadi-block" style="border-left:4px solid var(--c-orange)"><h3>Это бесплатное превью</h3>'
+     +'<p>В полном персональном отчёте:</p>'
+     +'<ul class="purpose-list">'
+       +'<li>Полный нади-анализ: достоинства, связи, соединения и скопления планет</li>'
+       +'<li>Трактовки сочетаний планет из классических источников</li>'
+       +'<li>Главные йоги и предназначение — профессии, где ждёт успех</li>'
+       +'<li>Периоды жизни (даша): текущие и полная таблица</li>'
+       +'<li>Навамша и дробные карты, планеты по домам</li>'
+       +'<li>Возможная прошлая жизнь, имя по накшатре, навграха-янтра</li>'
+       +'<li>Сохранение в PDF и личная ссылка на ваш гороскоп</li>'
+     +'</ul>'
+     +'<div style="text-align:center;margin-top:14px"><a class="astro-btn" href="'+FULL_URL+'" target="_blank" rel="noopener" style="display:inline-flex">Получить полный отчёт</a></div>'
+   +'</div>';
+}
+async function setupAccess(){
+  if(PREVIEW){ document.body.classList.add('preview'); return; }
+  const p=readShareHash();
+  if(p && (p.date||p.lat!==undefined)){
+    document.body.classList.add('reader-mode');
+    const dparts=(p.date||'').split('-');
+    document.getElementById('readerBanner').textContent='Ваш гороскоп · '+(p.place||'')+(dparts.length===3?' · '+dparts[2]+'.'+dparts[1]+'.'+dparts[0]:'')+(p.time?', '+p.time:'');
+    await applyShareData(p);
+    return;
+  }
+  if(lsGet('jyotish_unlocked')==='1'){ unlockApp(); return; }
+  // иначе — шлюз доступа (показывается через CSS по умолчанию)
 }
 
 /* ── Переключение вкладок ── */
@@ -717,6 +766,7 @@ function switchTab(name){
 }
 function renderActiveTab(){
   if(!CHART) return;
+  if(PREVIEW){ renderNadiPreview(CHART); return; }   // бесплатное превью — только урезанный обзор
   if(activeTab==='nadi')   renderNadi(CHART);
   if(activeTab==='naksh')  renderNaksh(CHART);
   if(activeTab==='yantra') renderYantra(CHART);
@@ -2104,7 +2154,7 @@ document.getElementById('bdate').addEventListener('change',()=>{ if(BIRTH_ZONE &
     }
   });
 })();
-initAccess();
+setupAccess();
 </script>
 </body>
 </html>
