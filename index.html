@@ -707,7 +707,7 @@ async function applyShareData(p){
   let tz=p.tz;
   if(tz===undefined||tz===null||tz===''){
     try{ const zone=await detectZone(p.lat,p.lon); if(zone){ const dd=(p.date||'').split('-').map(Number), tt=(p.time||'12:00').split(':').map(Number); const o=tzOffsetForZone(zone,dd[0],dd[1],dd[2],tt[0],tt[1]); if(o!=null) tz=o; } }catch(e){}
-    if(tz===undefined||tz===null||tz==='') tz=0;
+    if(tz===undefined||tz===null||tz==='') tz=Math.round((parseFloat(p.lon)||0)/15); // нет сети для пояса → оценка по долготе (детерминирована, одинакова на всех устройствах), НЕ UTC
   }
   document.getElementById('btz').value=tz;
   if(p.tab) switchTab(p.tab);
