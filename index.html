@@ -820,6 +820,7 @@ const QUALITY_LABEL={own:'В своём знаке',exalt:'Экзальтаци�
                      neutral:'Нейтральный знак',enemy:'Знак врага',debil:'Падение'};
 const QUALITY_COLOR={exalt:'#2E8B57',friend:'#66BB6A',neutral:'#C8960C',
                      enemy:'#FF8C00',debil:'#CC2200',own:'#7B5EA7'};
+const QUALITY_TIP={exalt:'Экзальтация — максимальная сила, планета даёт лучшие плоды.',own:'Свой знак — планета устойчива и сильна, «дома».',friend:'Знак друга — поддержка, благоприятное проявление.',neutral:'Нейтральный знак — ровное, среднее проявление.',enemy:'Знак врага — планета стеснена, плоды даются труднее.',debil:'Падение — минимальная сила; при Нича-Бханге сила возвращается.'};
 
 // Описания нади-пар (из классических текстов нади). Ключ: 'Su_Ju' и т.п.
 const NADI_DESC = {
@@ -1069,6 +1070,10 @@ const GLOSSARY={
   Sa:'Сатурн — дисциплина, труд, ограничения, задержки, зрелость, карма.',
   Ra:'Раху — амбиции, одержимость, всё иностранное и нестандартное, рост через желания.',
   Ke:'Кету — отрешённость, духовность, прошлый опыт, потери, мокша.',
+  dignity:'Достоинство — сила планеты по знаку: экзальтация/свой знак — сильная; знак друга/нейтральный — средняя; знак врага/падение — ослабленная.',
+  combust:'Сожжение (асту) — планета близко к Солнцу, её качества «выгорают» и проявляются слабее.',
+  retro:'Ретроградность — планета движется попятно: энергия обращена внутрь, часто усилена, темы повторяются кармически.',
+  strength:'Сила — оценка по достоинству знака (экзальтация/свой знак — максимум, падение — минимум), со снижением при сожжении.',
   s0:'Овен — огонь, кардинальный: напор, инициатива, лидерство. Управитель — Марс.',
   s1:'Телец — земля, фиксированный: устойчивость, достаток, чувственность. Венера.',
   s2:'Близнецы — воздух, двойственный: общение, ум, гибкость. Меркурий.',
@@ -1162,7 +1167,7 @@ function stelliumBlock(positions, lagSign){
 
 /* ── Навигация по разделам (липкое оглавление) ── */
 function navShort(t){
-  const map=[['Анализ карты','Анализ'],['Планеты по','Планеты'],['Дробные','Варги'],['Соединения','Соединения'],['Скопления','Стеллиумы'],['Предназнач','Призвание'],['йоги','Йоги'],['период жизни','Даша'],['Полная таблица','Все периоды'],['Баланс','Сводка'],['прошлая жизнь','Прошлая жизнь'],['Источники','Источники']];
+  const map=[['Положения планет','Положения'],['Анализ карты','Анализ'],['Планеты по','Планеты'],['Дробные','Варги'],['Соединения','Соединения'],['Скопления','Стеллиумы'],['Предназнач','Призвание'],['йоги','Йоги'],['период жизни','Даша'],['Полная таблица','Все периоды'],['Баланс','Сводка'],['прошлая жизнь','Прошлая жизнь'],['Источники','Источники']];
   for(const [k,v] of map) if(t.toLowerCase().includes(k.toLowerCase())) return v;
   return t.slice(0,14);
 }
@@ -1789,6 +1794,53 @@ function fullDashaBlock(chart){
     <p class="muted" style="margin-top:8px">9 махадаш на ~120 лет; раскрой период, чтобы увидеть антардаши (подпериоды). Текущие выделены.</p></div>`;
 }
 
+/* ── Сводная таблица положений планет ── */
+function moonPhase(chart){
+  const elong=nd(chart.pos.Moon-chart.pos.Sun);
+  return {tithi:Math.floor(elong/12)+1, waxing:elong<180,
+          paksha: elong<180?'Шукла-пакша (растущая Луна)':'Кришна-пакша (убывающая Луна)'};
+}
+function degStr(lon){ const d=((lon%30)+30)%30, deg=Math.floor(d), min=Math.floor((d-deg)*60); return deg+'°'+String(min).padStart(2,'0')+'′'; }
+function positionsTable(positions, chart, lagSign){
+  const P=['Su','Mo','Ma','Me','Ju','Ve','Sa','Ra','Ke'];
+  const NAKc=360/27, padc=NAKc/4;
+  const STD={Su:'Sun',Mo:'Moon',Ma:'Mars',Me:'Mercury',Ju:'Jupiter',Ve:'Venus',Sa:'Saturn',Ra:'Rahu',Ke:'Ketu'};
+  const ORB={Mo:12,Ma:17,Me:14,Ju:11,Ve:10,Sa:15}, sunLon=positions.Su.lon;
+  const nakTip=ni=>`Накшатра ${NAKSHATRAS[ni].name} — управитель ${NAKSHATRAS[ni].lord}, божество ${NAKSHATRAS[ni].deity}.`;
+  const la=positions.La.lon, laSgn=Math.floor(la/30), laNi=Math.floor(la/NAKc), laPada=Math.floor((la%NAKc)/padc)+1;
+  let rows=`<tr><td><span title="Лагна (асцендент) — восходящий знак, 1-й дом: основа личности и тела.">Лагна</span></td>`
+    +`<td>${gl('s'+laSgn,SIGN_NAMES[laSgn])} ${degStr(la)}</td><td>${gl('h1','1-й')}</td>`
+    +`<td><span title="${nakTip(laNi)} Пада ${laPada}.">${NAKSHATRAS[laNi].name} (${laPada})</span></td>`
+    +`<td>${NAKSHATRAS[laNi].lord}</td>`
+    +`<td class="muted">—</td><td class="muted">—</td><td class="muted">—</td></tr>`;
+  rows+=P.map(p=>{
+    const lon=positions[p].lon, sgn=Math.floor(lon/30), h=((sgn-lagSign+12)%12)+1;
+    const ni=Math.floor(lon/NAKc), pada=Math.floor((lon%NAKc)/padc)+1, q=nadiQuality(p,sgn);
+    const retro=(p==='Ra'||p==='Ke')?true:(chart.spd&&chart.spd[STD[p]]!=null?chart.spd[STD[p]]<0:false);
+    let combust=false; if(ORB[p]){ let dd=Math.abs(lon-sunLon); if(dd>180)dd=360-dd; combust=dd<ORB[p]; }
+    const sBase=({exalt:5,own:5,friend:4,neutral:3,enemy:2,debil:1})[q]||3;
+    const sVal=Math.max(1,combust?sBase-1:sBase);
+    const sCol=sVal>=4?'#2E8B57':(sVal===3?'#C8960C':'#CC2200');
+    const dots='●'.repeat(sVal)+'○'.repeat(5-sVal);
+    const st=[];
+    if(combust) st.push(`<span class="gl" data-gl="combust" style="color:#CC2200" title="${(GLOSSARY.combust||'').replace(/"/g,'')}">🔴 сожжён</span>`);
+    if(retro)  st.push(`<span class="gl" data-gl="retro" style="color:#7B5EA7" title="${(GLOSSARY.retro||'').replace(/"/g,'')}">℞ ретро</span>`);
+    return `<tr><td>${gl(p,P_NAMES[p])}</td>`
+      +`<td>${gl('s'+sgn,SIGN_NAMES[sgn])} ${degStr(lon)}</td><td>${gl('h'+h,h+'-й')}</td>`
+      +`<td><span title="${nakTip(ni)} Пада ${pada}.">${NAKSHATRAS[ni].name} (${pada})</span></td>`
+      +`<td>${NAKSHATRAS[ni].lord}</td>`
+      +`<td><span class="gl" data-gl="dignity" style="color:${QUALITY_COLOR[q]};font-weight:bold" title="${(QUALITY_TIP[q]||'').replace(/"/g,'')}">${QUALITY_LABEL[q]}</span></td>`
+      +`<td><span class="gl" data-gl="strength" style="color:${sCol};letter-spacing:1px;white-space:nowrap" title="Сила ${sVal}/5${combust?' (снижена сожжением)':''}">${dots}</span></td>`
+      +`<td>${st.join(' ')||'<span class="muted">—</span>'}</td></tr>`;
+  }).join('');
+  const mp=moonPhase(chart);
+  return `<div class="nadi-block"><h3>Положения планет</h3>
+    <div class="table-scroll"><table class="bhava-table"><thead><tr>
+      <th>Планета</th><th>Знак · градус</th><th>Дом</th><th>Накшатра (пада)</th><th>Упр.</th><th>${gl('dignity','Достоинство')}</th><th>${gl('strength','Сила')}</th><th>Состояние</th>
+    </tr></thead><tbody>${rows}</tbody></table></div>
+    <p class="muted">Луна: <strong>${mp.paksha}</strong>, титхи ${mp.tithi}. Наведите на планету, знак, дом, накшатру, достоинство или метку состояния — появится пояснение.</p>
+  </div>`;
+}
 function renderNadi(chart){
   NATIVE_SEX=(chart.input.sex==='m')?'m':'f';
   const positions=nadiPositions(chart);
@@ -1806,6 +1858,7 @@ function renderNadi(chart){
        <button class="${nadiChartStyle==='north'?'active':''}" onclick="setChartStyle('north')">Северная</button>
      </div>
      <div class="nadi-chart-wrap">${chartSvg}</div>`
+    +positionsTable(positions,chart,lagnaSign)
     +renderAnalysis(positions,nadiLines,lagnaSign,dateStr,city)
     +bhavaBlock(positions,lagnaSign)
     +vargaBlock(positions)
