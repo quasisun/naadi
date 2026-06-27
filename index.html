@@ -1167,7 +1167,7 @@ function stelliumBlock(positions, lagSign){
 
 /* ── Навигация по разделам (липкое оглавление) ── */
 function navShort(t){
-  const map=[['Положения планет','Положения'],['Трактовки нади','Трактовки'],['Анализ карты','Анализ'],['Планеты по','Планеты'],['Дробные','Варги'],['Соединения','Соединения'],['Скопления','Стеллиумы'],['Предназнач','Призвание'],['йоги','Йоги'],['период жизни','Даша'],['Полная таблица','Все периоды'],['Баланс','Сводка'],['прошлая жизнь','Прошлая жизнь'],['Источники','Источники']];
+  const map=[['Положения планет','Положения'],['Трактовки нади','Трактовки'],['Бхригу','Бхригу'],['Анализ карты','Анализ'],['Планеты по','Планеты'],['Дробные','Варги'],['Соединения','Соединения'],['Скопления','Стеллиумы'],['Предназнач','Призвание'],['йоги','Йоги'],['период жизни','Даша'],['Полная таблица','Все периоды'],['Баланс','Сводка'],['прошлая жизнь','Прошлая жизнь'],['Источники','Источники']];
   for(const [k,v] of map) if(t.toLowerCase().includes(k.toLowerCase())) return v;
   return t.slice(0,14);
 }
@@ -1861,6 +1861,7 @@ function chartFacts(chart,positions,lagSign){
   f.benAspOn=b=>['Ju','Ve','Me','Mo'].filter(m=>m!==b&&f.aspByOn(m,b)).length;
   f.moonFixed=[1,4,7,10].includes(f.Mo.sign); // Телец/Лев/Скорпион/Водолей
   f.moonWaxing=moonPhase(chart).waxing;
+  f.hf=(from,p)=>((f[p].sign-f[from].sign+12)%12)+1; // дом планеты p, считая от планеты from (система Бхригу Нади)
   return f;
 }
 const NADI_RULES=[
@@ -1927,19 +1928,79 @@ const NADI_RULES=[
     upaya:'Брать на себя организацию и стратегию — здесь вы особенно эффективны.',
     original:'Марс в Козероге даёт хорошие управленческие и лидерские качества, эффективность в стратегическом руководстве.' },
 ];
+// Рендер одной трактовки. personal/original могут быть строкой или функцией(f). Пустой personal → пропуск.
+function nadiItemHTML(e,f){
+  const personal = typeof e.personal==='function' ? e.personal(f) : e.personal;
+  if(!personal) return '';
+  const original = typeof e.original==='function' ? e.original(f) : e.original;
+  return `<div class="nadi-item" style="flex-direction:column;align-items:stretch;gap:4px">
+    <div>${personal}</div>
+    ${e.note?`<div style="font-size:14px;color:#6b6166">💬 ${e.note}</div>`:''}
+    ${e.upaya?`<div style="font-size:14px;color:#1b7a3d">🪔 ${e.upaya}</div>`:''}
+    ${original?`<details style="font-size:14px;margin-top:2px"><summary style="cursor:pointer;color:#df2227">📜 Оригинал (перевод первоисточника)</summary><div style="margin-top:4px;color:#555">«${original}» <span class="muted">— ${e.src}</span></div></details>`:''}
+  </div>`;
+}
 function nadiSutrasBlock(chart,positions,lagSign){
   const f=chartFacts(chart,positions,lagSign), out=[];
-  for(const e of NADI_RULES){ let ok=false; try{ ok=!!e.when(f); }catch(_){ ok=false; } if(!ok) continue;
-    out.push(`<div class="nadi-item" style="flex-direction:column;align-items:stretch;gap:4px">
-      <div>${e.personal}</div>
-      ${e.note?`<div style="font-size:14px;color:#6b6166">💬 ${e.note}</div>`:''}
-      ${e.upaya?`<div style="font-size:14px;color:#1b7a3d">🪔 ${e.upaya}</div>`:''}
-      <details style="font-size:14px;margin-top:2px"><summary style="cursor:pointer;color:#df2227">📜 Оригинал (перевод классического текста)</summary><div style="margin-top:4px;color:#555">«${e.original}» <span class="muted">— ${e.src}</span></div></details>
-    </div>`);
-  }
+  for(const e of NADI_RULES){ let ok=false; try{ ok=!!e.when(f); }catch(_){ ok=false; } if(!ok) continue; const h=nadiItemHTML(e,f); if(h) out.push(h); }
   if(!out.length) return '';
   return `<div class="nadi-block"><h3>Трактовки нади по вашей карте</h3><div class="nadi-list">${out.join('')}</div>
     <p class="muted">Показаны только трактовки, чьи условия выполнены в вашей карте. «📜 Оригинал» — точный перевод первоисточника.</p></div>`;
+}
+/* ── Бхригу Нади: дома считаются ОТ ЮПИТЕРА (f.hf). Резкое — мягко в личном, дословно в 📜 оригинале. ── */
+const MARRIAGE_AGE_BNS={2:'24–25',3:'26–27',4:'15–16',5:'16–22',6:'29–30',7:'18–19',8:'20–21',9:'22',10:'22',11:'22–23',12:'24–30'};
+const BHRIGU_RULES=[
+  { src:'Brighu Naadi Sangraha', when:f=>f.Ju.sign===7,
+    personal:'<b>Юпитер в Скорпионе</b>: честолюбивый, целеустремлённый человек с сильной волей к достижению.',
+    original:'Натив будет честолюбивым человеком.' },
+  { src:'Brighu Naadi Sangraha', when:f=>f.Ju.sign===5,
+    personal:'<b>Юпитер в Деве</b>: высокий интеллект, склонность к учёности и анализу.',
+    original:'Натив будет высокоинтеллектуальным и учёным.' },
+  { src:'Brighu Naadi Sangraha', when:f=>f.Ju.sign===2,
+    personal:'<b>Юпитер в Близнецах</b>: деловая хватка, склонность к бизнесу и торговле.',
+    original:'Натив будет ориентирован на бизнес.' },
+  { src:'Brighu Naadi Sangraha', when:f=>f.conj('Ju','Me'),
+    personal:'<b>Юпитер с Меркурием</b>: тяга к знаниям и исследованиям, в т.ч. ведическим; острый, обучаемый ум.',
+    original:'Натив будет интересоваться ведическими исследованиями.' },
+  { src:'Brighu Naadi Sangraha', when:f=>f.conj('Ju','Ke'),
+    personal:'<b>Юпитер с Кету</b>: богобоязненность, уважение к старшим, тяга к духовному.',
+    original:'Натив богобоязнен и почитает старших.' },
+  { src:'Brighu Naadi Sangraha', when:f=>f.Ju.dignity==='exalt'&&f.Su.dignity==='exalt',
+    personal:'<b>Юпитер и Солнце в экзальтации</b>: глубокая набожность и устойчивые жизненные принципы.',
+    original:'Натив будет набожным и религиозным.' },
+  { src:'Brighu Naadi Sangraha', when:f=>f.hf('Ju','Su')===7,
+    personal:'<b>Солнце в 7-м доме от Юпитера</b> (Бхригу Нади): признание и почести, в т.ч. со стороны государства и руководства.',
+    original:'Натив получит государственные почести.' },
+  { src:'Brighu Naadi Sangraha', when:f=>f.hf('Ju','Ma')===2,
+    personal:'<b>Марс во 2-м доме от Юпитера</b> (Бхригу Нади): доходы и выгоды от земли и недвижимости.',
+    original:'Натив будет иметь доходы от земельной собственности.' },
+  { src:'Brighu Naadi Sangraha', when:f=>f.Me.dignity==='exalt',
+    personal:'<b>Меркурий в экзальтации</b>: ясный, сильный ум, способности к точным наукам и слову.',
+    original:'Натив будет умным человеком.' },
+  { src:'Brighu Naadi Sangraha', when:f=>f.Ve.dignity==='exalt',
+    personal:'<b>Венера в экзальтации</b>: достаток и гармония в личной жизни; партнёр(ша) благополучен и хорош собой.',
+    original:'У натива будет богатая и красивая жена.' },
+  { src:'Brighu Naadi Sangraha', when:f=>MARRIAGE_AGE_BNS[f.hf('Ju','Ve')]!==undefined,
+    personal:f=>`<b>Ориентир по браку</b> (Бхригу Нади, Венера в ${f.hf('Ju','Ve')}-м доме от Юпитера): вероятный возраст брака — около <b>${MARRIAGE_AGE_BNS[f.hf('Ju','Ve')]}</b> лет. Это ориентир, а не точная дата.`,
+    original:'Возраст брака определяется по дому Венеры, считая от Юпитера (таблица Бхригу Нади).' },
+  { src:'Brighu Naadi Sangraha', when:f=>f.conj('Ju','Ra'),
+    personal:'<b>Юпитер соединён с Раху</b>: возможны периоды тревожности, перепадов настроения и внутреннего напряжения — берегите душевное равновесие.',
+    note:'Смягчено: первоисточник звучит резче (см. оригинал); на практике это о чувствительной психике, а не диагноз.',
+    upaya:'Юпитеру — четверг; режим сна, практики покоя ума, поддержка близких.',
+    original:'Натив будет страдать от умственной депрессии.' },
+  { src:'Brighu Naadi Sangraha', when:f=>f.conj('Ve','Ke'),
+    personal:'<b>Венера соединена с Кету</b>: в близких отношениях возможны испытания и темы, требующие внимания к здоровью партнёра и к деторождению; отношения учат заботе и принятию.',
+    note:'Смягчено: дословный первоисточник резок (см. оригинал) — мы трактуем это как зону внимания и профилактики, а не приговор.',
+    upaya:'Венере — пятница, забота о доме и здоровье; медицинская профилактика при планировании семьи.',
+    original:'Жена натива не будет жить долго; будет страдать от геморроя; у натива могут быть выкидыши.' },
+];
+function nadiBhriguBlock(chart,positions,lagSign){
+  const f=chartFacts(chart,positions,lagSign), out=[];
+  for(const e of BHRIGU_RULES){ let ok=false; try{ ok=!!e.when(f); }catch(_){ ok=false; } if(!ok) continue; const h=nadiItemHTML(e,f); if(h) out.push(h); }
+  if(!out.length) return '';
+  return `<div class="nadi-block"><h3>Трактовки по системе Бхригу Нади</h3>
+    <p class="muted" style="margin-top:-4px">В системе Бхригу Нади Юпитер играет роль асцендента, а дома отсчитываются от Юпитера. Показаны только применимые к вашей карте трактовки.</p>
+    <div class="nadi-list">${out.join('')}</div></div>`;
 }
 function renderNadi(chart){
   NATIVE_SEX=(chart.input.sex==='m')?'m':'f';
@@ -1960,6 +2021,7 @@ function renderNadi(chart){
      <div class="nadi-chart-wrap">${chartSvg}</div>`
     +positionsTable(positions,chart,lagnaSign)
     +nadiSutrasBlock(chart,positions,lagnaSign)
+    +nadiBhriguBlock(chart,positions,lagnaSign)
     +renderAnalysis(positions,nadiLines,lagnaSign,dateStr,city)
     +bhavaBlock(positions,lagnaSign)
     +vargaBlock(positions)
