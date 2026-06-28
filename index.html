@@ -1178,7 +1178,7 @@ function stelliumBlock(positions, lagSign){
 
 /* ── Навигация по разделам (липкое оглавление) ── */
 function navShort(t){
-  const map=[['Положения планет','Положения'],['Трактовки нади','Трактовки'],['Бхригу','Бхригу'],['Прашна','Прашна'],['Анализ карты','Анализ'],['Планеты по','Планеты'],['Дробные','Варги'],['Соединения','Соединения'],['Скопления','Стеллиумы'],['Предназнач','Призвание'],['йоги','Йоги'],['период жизни','Даша'],['Полная таблица','Все периоды'],['Баланс','Сводка'],['прошлая жизнь','Прошлая жизнь'],['Справочник','Справочник'],['Источники','Источники']];
+  const map=[['Положения планет','Положения'],['Трактовки нади','Трактовки'],['Бхригу','Бхригу'],['Прашна','Прашна'],['Транзиты','Транзиты'],['Анализ карты','Анализ'],['Планеты по','Планеты'],['Дробные','Варги'],['Соединения','Соединения'],['Скопления','Стеллиумы'],['Предназнач','Призвание'],['йоги','Йоги'],['период жизни','Даша'],['Полная таблица','Все периоды'],['Баланс','Сводка'],['прошлая жизнь','Прошлая жизнь'],['Справочник','Справочник'],['Источники','Источники']];
   for(const [k,v] of map) if(t.toLowerCase().includes(k.toLowerCase())) return v;
   return t.slice(0,14);
 }
@@ -2650,6 +2650,61 @@ const NADI_REFERENCE=[
  {h:'Аспект и скорость Раху и Кету', html:'Сильнейший аспект лунных узлов — <b>9-й</b> (а не 5-й, как у остальных планет). Скорость Раху-Кету постоянна: полный круг зодиака за <b>18 лет</b>, один знак — за 1,5 года. Ретроградная планета рассматривается как в предыдущем знаке. <span class="muted">(Naadi Research, Negandhi)</span>'},
  {h:'Сила планеты по соседям', html:'Планета считается <b>слабой</b>, если в соседних домах (2-м и 12-м от неё) и в 7-м от неё нет планет — тогда она даёт слабые плоды. Планеты в 12-м от планеты дают ей опору; их не игнорируют. <span class="muted">(Naadi Research, Negandhi)</span>'}
 ];
+// ── Модуль транзитов: медленные планеты (Сатурн/Юпитер/узлы) по натальным положениям на «сегодня» (по знаку) ──
+const PL_INSTR={Sun:'Солнцем',Moon:'Луной',Mars:'Марсом',Mercury:'Меркурием',Jupiter:'Юпитером',Venus:'Венерой',Saturn:'Сатурном',Rahu:'Раху',Ketu:'Кету'};
+const PL_THEME={Sun:'статуса, воли и отношений с отцом/властью',Moon:'ума, матери и душевного покоя',Mars:'энергии, инициативы и братьев',Mercury:'учёбы, речи и дел',Jupiter:'удачи, детей и мудрости',Venus:'отношений, достатка и удовольствий',Saturn:'карьеры, труда и дисциплины'};
+const SAT_TRANSIT={
+ Sun:'проверка статуса и темы отца/начальства; берегите сердце и не идите на острый конфликт с властью',
+ Moon:'повышенные расходы, перемены и возможная смена места; берегите душевный покой и режим',
+ Mars:'трудности и задержки в делах, спад темпа; осторожность с травмами, техникой и спешкой',
+ Mercury:'перемены в делах, учёбе и договорах; важны ясность и неторопливость в решениях',
+ Jupiter:'экономический подъём и рост, признание; благоприятный период для дел и финансов',
+ Venus:'рост доходов и благополучия, укрепление достатка; внимание к близким отношениям',
+ Saturn:'сатурнианское возвращение — зрелость и пересмотр пути; ответственность даёт прочный результат, бывает усталость',
+ Rahu:'неожиданные повороты и рост амбиций; полезны заземление и осторожность с авантюрами',
+ Ketu:'период завершения и отпускания, духовный поворот; не лучшее время для крупных начинаний — берегите себя и доводите старое до конца'
+};
+const JUP_TRANSIT={
+ Saturn:'благоприятно для новой работы или своего дела, признание труда (по нади — частое время трудоустройства)',
+ Moon:'душевный подъём, благополучие и поддержка; хорошее время для семьи и роста',
+ Sun:'рост статуса и уверенности, поддержка свыше и от наставников',
+ Venus:'благоприятно для отношений, достатка и творчества; возможны сближение или брак',
+ Mars:'энергия направляется в рост и достойные цели — хорошо для смелых дел',
+ Mercury:'удача в учёбе, делах и договорах; ясные решения и полезные знания',
+ Jupiter:'юпитерианское возвращение (~12 лет) — новый цикл роста, удачи и мудрости',
+ Rahu:'расширение через необычное и заграничное под защитой Юпитера',
+ Ketu:'духовный рост и мудрость, тяга к смыслу и освобождению'
+};
+function transitBlock(chart){
+ try{
+  if(!chart||!chart.pos) return '';
+  var now=new Date();
+  var uy=now.getUTCFullYear(),um=now.getUTCMonth()+1,ud=now.getUTCDate();
+  var uh=now.getUTCHours()+now.getUTCMinutes()/60;
+  var jd=jdLocal(uy,um,ud,now.getUTCHours(),now.getUTCMinutes(),0);
+  var ay=lahiriAyanamsa(jd), sid=function(t){return nd(t-ay);};
+  var trop={};
+  if(typeof SWE_READY!=='undefined'&&SWE_READY){ var jdu=SWE.julday(uy,um,ud,uh); trop.Saturn=SWE.calc(jdu,6,4|256).lon; trop.Jupiter=SWE.calc(jdu,5,4|256).lon; trop.Rahu=SWE.calc(jdu,11,4|256).lon; }
+  else { trop.Saturn=saturnLon(jd); trop.Jupiter=jupiterLon(jd); trop.Rahu=rahuLon(jd); }
+  var trSa=signIdx(sid(trop.Saturn)), trJu=signIdx(sid(trop.Jupiter)), trRa=signIdx(sid(trop.Rahu)), trKe=(trRa+6)%12;
+  var nat={}; ['Sun','Moon','Mars','Mercury','Jupiter','Venus','Saturn','Rahu','Ketu'].forEach(function(p){ nat[p]=signIdx(chart.pos[p]); });
+  var out=[];
+  var natal=function(p){return (p==='Moon'||p==='Venus'?'натальной':'натальным')+' '+PL_INSTR[p];};
+  var dM=((trSa-nat.Moon+12)%12);
+  if(dM===11||dM===0||dM===1) out.push('🪐 <b>Период Сади-сати</b> (Сатурн рядом с натальной Луной, ~7,5 лет): время зрелости и испытаний на прочность, перестройка жизни; помогают терпение, режим и опора на близких.');
+  for(var p in SAT_TRANSIT){ if(p!=='Saturn'&&nat[p]===trSa) out.push('<b>Транзитный Сатурн — с '+natal(p)+'</b>: '+SAT_TRANSIT[p]+'.'); }
+  if(nat.Saturn===trSa) out.push('<b>Транзитный Сатурн — возвращение к натальному Сатурну</b>: '+SAT_TRANSIT.Saturn+'.');
+  for(var q in JUP_TRANSIT){ if(nat[q]===trJu) out.push('<b>Транзитный Юпитер — с '+natal(q)+'</b>: '+JUP_TRANSIT[q]+'.'); }
+  ['Sun','Moon','Venus','Saturn','Jupiter'].forEach(function(p){
+    if(nat[p]===trRa) out.push('<b>Транзитный Раху — с '+natal(p)+'</b>: усиление и обострение темы '+PL_THEME[p]+'; рост амбиций, важно не поддаваться иллюзиям.');
+    if(nat[p]===trKe) out.push('<b>Транзитный Кету — с '+natal(p)+'</b>: отрешённость и переоценка в теме '+PL_THEME[p]+'; отпускание и духовный взгляд.');
+  });
+  if(!out.length) return '';
+  var ds=ud+'.'+('0'+um).slice(-2)+'.'+uy;
+  var head='<p class="muted" style="margin-top:-4px">На '+ds+': транзитный Сатурн в знаке '+SIGN_RU[trSa]+', Юпитер в '+SIGN_RU[trJu]+', Раху в '+SIGN_RU[trRa]+', Кету в '+SIGN_RU[trKe]+'. Показаны соединения медленных планет с вашими натальными (по знаку) — ориентир на нынешний период, без предсказания событий «судьбы».</p>';
+  return '<div class="nadi-block"><h3>Транзиты сейчас</h3>'+head+'<div class="nadi-list">'+out.map(function(t){return '<div class="nadi-item"><div>'+spouseGender(t)+'</div></div>';}).join('')+'</div></div>';
+ }catch(e){ return ''; }
+}
 function nadiReferenceBlock(){
   var S=NADI_REFERENCE.map(function(s){return '<div style="margin:10px 0"><b style="color:var(--c-orange)">'+s.h+'</b><div style="margin-top:3px">'+s.html+'</div></div>';}).join('');
   return '<div class="nadi-block"><h3>Справочник: основы нади</h3>'
@@ -2678,6 +2733,7 @@ function renderNadi(chart){
     +nadiSutrasBlock(chart,positions,lagnaSign)
     +nadiBhriguBlock(chart,positions,lagnaSign)
     +prashnaBlock(chart)
+    +transitBlock(chart)
     +renderAnalysis(positions,nadiLines,lagnaSign,dateStr,city)
     +bhavaBlock(positions,lagnaSign)
     +vargaBlock(positions)
