@@ -1929,9 +1929,18 @@ const NADI_RULES=[
     original:'Марс в Козероге даёт хорошие управленческие и лидерские качества, эффективность в стратегическом руководстве.' },
 ];
 // Рендер одной трактовки. personal/original могут быть строкой или функцией(f). Пустой personal → пропуск.
+// Адаптация супруга по полу натива: для женщины «жена→муж» (источники мужецентричны). Оригинал не трогаем.
+function genderAdapt(t){
+  if(typeof NATIVE_SEX==='undefined'||NATIVE_SEX!=='f'||!t) return t;
+  var map={'жена':'муж','жену':'мужа','жены':'мужа','жене':'мужу','женой':'мужем'};
+  t=t.replace(/([А-Яа-яЁё]+)(ая|яя)\s+(жена|жену|жены|жене|женой)([^а-яёА-ЯЁ]|$)/gu,function(m,stem,end,noun,tail){ return stem+(end==='ая'?'ый':'ий')+' '+map[noun]+tail; });
+  t=t.replace(/(^|[^а-яёА-ЯЁ])(жена|жену|жены|жене|женой)([^а-яёА-ЯЁ]|$)/gu,function(m,pre,noun,tail){ return pre+map[noun]+tail; });
+  return t;
+}
 function nadiItemHTML(e,f){
-  const personal = typeof e.personal==='function' ? e.personal(f) : e.personal;
+  let personal = typeof e.personal==='function' ? e.personal(f) : e.personal;
   if(!personal) return '';
+  personal=genderAdapt(personal);
   const original = typeof e.original==='function' ? e.original(f) : e.original;
   return `<div class="nadi-item" style="flex-direction:column;align-items:stretch;gap:4px">
     <div>${personal}</div>
@@ -2064,6 +2073,7 @@ function prashnaCard(num){
   var p=PRASHNA[String(num)]; if(!p) return '';
   var soft=PRASHNA_SOFT[String(num)];
   var personal = soft ? soft : ((p.c||'')+(p.t?(' '+p.t):''));
+  personal=genderAdapt(personal);
   var orig=[p.c,p.i,p.t,p.m].filter(Boolean).join(' ');
   return '<div class="nadi-item" style="flex-direction:column;align-items:stretch;gap:4px">'
     +'<div>'+(p.y?('<b>'+p.y+'.</b> '):'')+personal+'</div>'
