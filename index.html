@@ -979,6 +979,17 @@ function gz(text){
     const w=sf[c]; return cap==='С'? w.charAt(0).toUpperCase()+w.slice(1) : w;
   });
 }
+// Для женской карты супруг = муж: правим ПОКАЗЫВАЕМЫЙ текст (personal/упайя), оригинал-первоисточник не трогаем.
+// Прилагательные/предикативы, согласованные с «жена», берём из словаря W (по факту встречаемости в источниках; расширять при добавлении трактовок).
+function spouseGender(t){
+  if(NATIVE_SEX!=='f'||!t) return t;
+  if(!/[Жж][её]н(а|ы|е|у|ой)(?![А-Яа-яЁё])/u.test(t)) return t;
+  const W={'богатая':'богатый','красивая':'красивый','религиозная':'религиозный','религиозной':'религиозным','капризная':'капризный','капризной':'капризным','переменчивая':'переменчивый','переменчивой':'переменчивым','иждивенка':'иждивенец','злоязычна':'злоязычен','атроциозна':'неуживчив','первую':'первого','унизил':'унизила','дразнил':'дразнила'};
+  t=t.replace(/[А-ЯЁа-яё]+/gu,w=>{const l=w.toLowerCase(); if(!W[l])return w; const r=W[l]; return w[0]===w[0].toUpperCase()? r.charAt(0).toUpperCase()+r.slice(1):r;});
+  const N={'жена':'муж','жену':'мужа','жены':'мужа','жене':'мужу','женой':'мужем'};
+  t=t.replace(/([Жж])ен(а|у|ы|е|ой)(?![А-Яа-яЁё])/gu,(m,J,suf)=>{const r=N['жен'+suf]||m; return J==='Ж'? r.charAt(0).toUpperCase()+r.slice(1):r;});
+  return t;
+}
 function getNadiDesc(planet, lord){
   const key1=planet+'_'+lord, key2=lord+'_'+planet;
   return NADI_DESC[key1] || NADI_DESC[key2] || null;
@@ -1929,18 +1940,10 @@ const NADI_RULES=[
     original:'Марс в Козероге даёт хорошие управленческие и лидерские качества, эффективность в стратегическом руководстве.' },
 ];
 // Рендер одной трактовки. personal/original могут быть строкой или функцией(f). Пустой personal → пропуск.
-// Адаптация супруга по полу натива: для женщины «жена→муж» (источники мужецентричны). Оригинал не трогаем.
-function genderAdapt(t){
-  if(typeof NATIVE_SEX==='undefined'||NATIVE_SEX!=='f'||!t) return t;
-  var map={'жена':'муж','жену':'мужа','жены':'мужа','жене':'мужу','женой':'мужем'};
-  t=t.replace(/([А-Яа-яЁё]+)(ая|яя)\s+(жена|жену|жены|жене|женой)([^а-яёА-ЯЁ]|$)/gu,function(m,stem,end,noun,tail){ return stem+(end==='ая'?'ый':'ий')+' '+map[noun]+tail; });
-  t=t.replace(/(^|[^а-яёА-ЯЁ])(жена|жену|жены|жене|женой)([^а-яёА-ЯЁ]|$)/gu,function(m,pre,noun,tail){ return pre+map[noun]+tail; });
-  return t;
-}
 function nadiItemHTML(e,f){
   let personal = typeof e.personal==='function' ? e.personal(f) : e.personal;
   if(!personal) return '';
-  personal=genderAdapt(personal);
+  personal = spouseGender(personal);
   const original = typeof e.original==='function' ? e.original(f) : e.original;
   return `<div class="nadi-item" style="flex-direction:column;align-items:stretch;gap:4px">
     <div>${personal}</div>
@@ -2072,12 +2075,11 @@ function prashnaAge(chart){ var f=chart.input; var b=Date.UTC(f.y,f.mo-1,f.d,f.h
 function prashnaCard(num){
   var p=PRASHNA[String(num)]; if(!p) return '';
   var soft=PRASHNA_SOFT[String(num)];
-  var personal = soft ? soft : ((p.c||'')+(p.t?(' '+p.t):''));
-  personal=genderAdapt(personal);
+  var personal = spouseGender(soft ? soft : ((p.c||'')+(p.t?(' '+p.t):'')));
   var orig=[p.c,p.i,p.t,p.m].filter(Boolean).join(' ');
   return '<div class="nadi-item" style="flex-direction:column;align-items:stretch;gap:4px">'
     +'<div>'+(p.y?('<b>'+p.y+'.</b> '):'')+personal+'</div>'
-    +(p.r?('<div style="font-size:14px;color:#1b7a3d">🪔 '+p.r+(p.m?(' · мантра: '+p.m):'')+'</div>'):'')
+    +(p.r?('<div style="font-size:14px;color:#1b7a3d">🪔 '+spouseGender(p.r)+(p.m?(' · мантра: '+p.m):'')+'</div>'):'')
     +'<details style="font-size:14px;margin-top:2px"><summary style="cursor:pointer;color:#df2227">📜 Оригинал (первоисточник)</summary><div style="margin-top:4px;color:#555">'+orig+' <span class="muted">— Brighu Prashna Nadi, R.G. Rao</span></div></details>'
     +'</div>';
 }
