@@ -1146,10 +1146,10 @@ function bhavaBlock(positions, lagSign){
   const P=['Su','Mo','Ma','Me','Ju','Ve','Sa','Ra','Ke'];
   const rows=P.map(p=>{
     const sgn=Math.floor(positions[p].lon/30), h=((sgn-lagSign+12)%12)+1;
-    return `<tr><td>${gl(p,P_NAMES[p])}</td><td>${gl('h'+h,h+'-й')}</td><td>${gl('s'+sgn,SIGN_NAMES[sgn])}</td><td>привносит ${PLANET_BRINGS[p]} в сферу «${HOUSE_THEME_SHORT[h-1]}».</td></tr>`;
+    return `<tr><td>${gl(p,P_NAMES[p])}</td><td>${gl('h'+h,h+'-й')}</td><td>привносит ${PLANET_BRINGS[p]} в сферу «${HOUSE_THEME_SHORT[h-1]}».</td></tr>`;
   }).join('');
   return `<div class="nadi-block"><h3>Планеты по домам</h3>
-    <div class="table-scroll"><table class="bhava-table"><thead><tr><th>Планета</th><th>Дом</th><th>Знак</th><th>Что даёт</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="table-scroll"><table class="bhava-table"><thead><tr><th>Планета</th><th>Дом</th><th>Что даёт</th></tr></thead><tbody>${rows}</tbody></table></div>
     <p class="muted">Дом — сфера жизни, где сильнее всего проявляется планета (равнознаковые дома от Лагны). Нажмите на планету, дом или знак — появится пояснение.</p>
   </div>`;
 }
@@ -1372,10 +1372,6 @@ function renderAnalysis(positions, nadiLines, lagnaSign, dateStr, city){
       <div class="lagna-info">Лагна: ${SIGN_NAMES[lagnaSign]} · ${dateStr}${city?' · '+city:''}</div>
     </div>
     <div class="analysis-body">
-      <div class="table-scroll"><table class="planet-table">
-        <thead><tr><th>Планета</th><th>Знак / Градус</th><th>Качество нади</th><th>Нади → к планете</th></tr></thead>
-        <tbody>${tableRows}</tbody>
-      </table></div>
       <div class="nadi-section">
         <div class="nadi-title">Нади линии (связи знак → владыка)</div>
         <div class="nadi-list">${nadiItems}</div>
@@ -2609,6 +2605,13 @@ function nadiReferenceBlock(){
    +'<details style="font-size:14px"><summary style="cursor:pointer;color:#df2227;font-weight:600">Открыть справочник</summary><div style="margin-top:6px">'+S+'</div></details></div>';
 }
 
+// Юридический дисклеймер (внизу разбора)
+function disclaimerBlock(){
+  return `<div class="nadi-block" style="border:1px dashed var(--c-line,#d8cfc4);background:#faf6ef">
+    <p class="muted" style="font-size:13px;line-height:1.65;margin:0">
+      <b>Важно.</b> Разбор основан на традиционной индийской астрологии (джйотиш, система нади) и носит ознакомительный характер. Трактовки разных школ и источников могут различаться и не всегда совпадают между собой; прогнозы — это тенденции и возможности, а не гарантированные события. Материал не заменяет консультацию специалиста и не является медицинским, юридическим, психологическим или финансовым советом. Решения принимайте взвешенно. Для разбора именно вашей ситуации и ответов на личные вопросы — <a href="https://goroskop1008.ru/uslugi">персональная консультация астролога</a>.
+    </p></div>`;
+}
 function renderNadi(chart){
   NATIVE_SEX=(chart.input.sex==='m')?'m':'f';
   const positions=nadiPositions(chart);
@@ -2620,30 +2623,40 @@ function renderNadi(chart){
   const f=chart.input;
   const dateStr=`${String(f.d).padStart(2,'0')}.${String(f.mo).padStart(2,'0')}.${f.y}`;
   const city=document.getElementById('bplace').value.trim();
+  const grp=t=>`<h2 class="nadi-group" style="margin:34px 0 8px;padding:10px 16px;background:var(--c-red,#df2227);color:#fff;border-radius:10px;font-size:1.12em;font-weight:700;letter-spacing:.01em">${t}</h2>`;
   document.getElementById('out-nadi').innerHTML=
     `<div class="chart-toggle">
        <button class="${nadiChartStyle==='south'?'active':''}" onclick="setChartStyle('south')">Южная</button>
        <button class="${nadiChartStyle==='north'?'active':''}" onclick="setChartStyle('north')">Северная</button>
      </div>
      <div class="nadi-chart-wrap">${chartSvg}</div>`
+    // ── 1. Натальная карта и положения ──
+    +grp('1. Натальная карта и положения')
     +positionsTable(positions,chart,lagnaSign)
+    +bhavaBlock(positions,lagnaSign)
+    +conjunctionsBlock(positions)
+    +stelliumBlock(positions,lagnaSign)
+    +yogasBlock(positions,lagnaSign)
+    +extrasBlock(chart,positions,lagnaSign)
+    // ── 2. Нади-трактовки ──
+    +grp('2. Нади-трактовки')
+    +renderAnalysis(positions,nadiLines,lagnaSign,dateStr,city)
     +nadiSutrasBlock(chart,positions,lagnaSign)
     +nadiBhriguBlock(chart,positions,lagnaSign)
     +prashnaBlock(chart)
-    +transitBlock(chart)
-    +renderAnalysis(positions,nadiLines,lagnaSign,dateStr,city)
-    +bhavaBlock(positions,lagnaSign)
-    +vargaBlock(positions)
-    +conjunctionsBlock(positions)
-    +stelliumBlock(positions,lagnaSign)
     +purposeBlock(positions,lagnaSign)
-    +yogasBlock(positions,lagnaSign)
-    +dashaBlock(chart)
-    +fullDashaBlock(chart)
-    +extrasBlock(chart,positions,lagnaSign)
     +pastLifeBlock(positions,lagnaSign)
     +nadiReferenceBlock()
-    +sourcesBlock();
+    // ── 3. Периоды и транзиты ──
+    +grp('3. Периоды и транзиты планет')
+    +dashaBlock(chart)
+    +fullDashaBlock(chart)
+    +transitBlock(chart)
+    // ── 4. Дробные карты ──
+    +grp('4. Дробные карты (варги)')
+    +vargaBlock(positions)
+    +sourcesBlock()
+    +disclaimerBlock();
   buildNadiNav();
 }
 
