@@ -665,7 +665,7 @@ function printAll(){
 //  иначе       → расчёт за кодом (SHA-256), разблокировка в localStorage
 const PREVIEW=/[?&]preview=1/.test(location.search);
 const GATE_HASH='9aaf689fbcdfe9f64a071f9cbe28ae44193fa218e72af24456f44bed64583b4d'; // SHA-256 кода доступа (по умолчанию 1008)
-const FULL_URL='https://goroskop1008.ru/uslugi/'; // ← страница услуг (рабочий дефолт); заменить на прямую ссылку товара «полный отчёт» в корзине после его создания
+const FULL_URL='https://goroskop1008.ru/uslugi/#goroskop#!/tproduct/769363362-1607964352579'; // прямая карточка товара «Полный гороскоп» (Tilda)
 function lsGet(k){try{return localStorage.getItem(k);}catch(e){return null;}}
 function lsSet(k,v){try{localStorage.setItem(k,v);}catch(e){}}
 function lsDel(k){try{localStorage.removeItem(k);}catch(e){}}
@@ -739,7 +739,7 @@ function renderNadiPreview(chart){
        +'<li>Возможная прошлая жизнь, имя по накшатре, навграха-янтра</li>'
        +'<li>Сохранение в PDF и личная ссылка на ваш гороскоп</li>'
      +'</ul>'
-     +'<div style="text-align:center;margin-top:14px"><a class="astro-btn" href="'+FULL_URL+'" target="_blank" rel="noopener" style="display:inline-flex">Получить полный отчёт</a></div>'
+     +'<div style="text-align:center;margin-top:14px"><a class="astro-btn" href="'+FULL_URL+'" target="_blank" rel="noopener" style="display:inline-flex">Заказать полный гороскоп</a></div>'
    +'</div>';
 }
 async function setupAccess(){
