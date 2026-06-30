@@ -245,13 +245,6 @@ table.maitri-matrix tbody th{color:var(--c-ink);text-align:right}
           <label for="btime">Время рождения</label>
           <input id="btime" type="time">
         </div>
-        <div class="astro-field">
-          <label for="bsex">Пол</label>
-          <select id="bsex">
-            <option value="f">Женский</option>
-            <option value="m">Мужской</option>
-          </select>
-        </div>
       </div>
 
       <div class="geo-row">
@@ -965,29 +958,25 @@ const NADI_DESC = {
     negative:'Хроническая неудовлетворённость, изоляция, задержки, мрачность, кармические долги, чувство «отрезанности».',
     upaya:'Служение старым и больным, кормление животных. Шани- и Кету-стотры по субботам. Простой образ жизни.'},
 };
-// Гендеризация: тексты написаны для мужской карты (супруг = жена);
-// для женской карты подставляем мужские словоформы через токены {с.падеж}/{С.падеж}.
-const SPOUSE_FORMS={
-  m:{nom:'жена',gen:'жены',dat:'жене',acc:'жену',ins:'женой',pre:'жене'},
-  f:{nom:'муж',gen:'мужа',dat:'мужу',acc:'мужа',ins:'мужем',pre:'муже'}
-};
-let NATIVE_SEX='f';
+// НЕЙТРАЛЬНЫЙ ГОРОСКОП (пол не используется): супруг любого пола → «супруг(а)».
+// Тексты источников написаны для мужской карты (супруг = жена); в показе нейтрализуем.
+const SPOUSE_FORMS={nom:'супруг(а)',gen:'супруга(и)',dat:'супругу(е)',acc:'супруга(у)',ins:'супругом(ой)',pre:'супруге'};
+let NATIVE_SEX='f'; // больше не влияет на текст; оставлено для совместимости вызовов
 function gz(text){
   if(!text) return text;
-  const sf=SPOUSE_FORMS[NATIVE_SEX]||SPOUSE_FORMS.f;
   return text.replace(/\{([Сс])\.(nom|gen|dat|acc|ins|pre)\}/g,(_,cap,c)=>{
-    const w=sf[c]; return cap==='С'? w.charAt(0).toUpperCase()+w.slice(1) : w;
+    const w=SPOUSE_FORMS[c]; return cap==='С'? w.charAt(0).toUpperCase()+w.slice(1) : w;
   });
 }
-// Для женской карты супруг = муж: правим ПОКАЗЫВАЕМЫЙ текст (personal/упайя), оригинал-первоисточник не трогаем.
-// Прилагательные/предикативы, согласованные с «жена», берём из словаря W (по факту встречаемости в источниках; расширять при добавлении трактовок).
+// Нейтрализация ПОКАЗЫВАЕМОГО текста (personal/упайя): «жена»/«муж» в любом падеже → «супруг(а)».
+// Прилагательные не трогаем (их род в источнике женский) — с нейтральным «супруг(а)» это читается корректно.
+// Оригинал-первоисточник (📜) не меняем.
 function spouseGender(t){
-  if(NATIVE_SEX!=='f'||!t) return t;
-  if(!/[Жж][её]н(а|ы|е|у|ой)(?![А-Яа-яЁё])/u.test(t)) return t;
-  const W={'богатая':'богатый','красивая':'красивый','религиозная':'религиозный','религиозной':'религиозным','капризная':'капризный','капризной':'капризным','переменчивая':'переменчивый','переменчивой':'переменчивым','иждивенка':'иждивенец','злоязычна':'злоязычен','атроциозна':'неуживчив','первую':'первого','унизил':'унизила','дразнил':'дразнила'};
-  t=t.replace(/[А-ЯЁа-яё]+/gu,w=>{const l=w.toLowerCase(); if(!W[l])return w; const r=W[l]; return w[0]===w[0].toUpperCase()? r.charAt(0).toUpperCase()+r.slice(1):r;});
-  const N={'жена':'муж','жену':'мужа','жены':'мужа','жене':'мужу','женой':'мужем'};
+  if(!t) return t;
+  const N={'жена':'супруг(а)','жену':'супруга(у)','жены':'супруга(и)','жене':'супругу(е)','женой':'супругом(ой)',
+           'муж':'супруг(а)','мужа':'супруга','мужу':'супругу(е)','мужем':'супругом(ой)','муже':'супруге'};
   t=t.replace(/([Жж])ен(а|у|ы|е|ой)(?![А-Яа-яЁё])/gu,(m,J,suf)=>{const r=N['жен'+suf]||m; return J==='Ж'? r.charAt(0).toUpperCase()+r.slice(1):r;});
+  t=t.replace(/([Мм])уж(а|у|ем|е)?(?![А-Яа-яёЁ])/gu,(m,M,suf)=>{const r=N['муж'+(suf||'')]||m; return M==='М'? r.charAt(0).toUpperCase()+r.slice(1):r;});
   return t;
 }
 function getNadiDesc(planet, lord){
@@ -1044,21 +1033,70 @@ const SRC_COMBOS={
   'Ve_Ra':{src:['bnn','sn','nr'],text:'Тема связи помимо брака в роду; чаще дочери, чем сыновья; вдовство; в мужской карте — флирт и множество женских связей; внезапные блага через женщин и искусство, но возможен спад достатка в даше после Кету.'}
 };
 function srcCombo(a,b){ return SRC_COMBOS[a+'_'+b]||SRC_COMBOS[b+'_'+a]||null; }
-function srcBlockHtml(a,b){
+// ── Персонализация трактовок по силе планет (NADI_F ставится в renderNadi перед рендером) ──
+let NADI_F=null;
+const NADI_PNM={Su:'Солнце',Mo:'Луна',Ma:'Марс',Me:'Меркурий',Ju:'Юпитер',Ve:'Венера',Sa:'Сатурн',Ra:'Раху',Ke:'Кету'};
+function plStrWord(p){ const f=NADI_F; if(!f||!f[p]) return 'средн. силы';
+  if(f[p].dignity==='debil'&&f[p].neechaBhanga){
+    var lvl=f[p].nbRaja?'Нича-Бханга Раджа-йога — полная отмена, сильн.':(f[p].nbCount>=2?'Нича-Бханга — крепкая отмена':'Нича-Бханга — нейтрализация (~средн.)');
+    return 'падение, но '+lvl+' ['+(f[p].nbReason||'')+']';
+  }
+  if(f[p].combust) return 'сожжён(а) Солнцем — ослаблен(а)';
+  return ({exalt:'в экзальтации — очень сильн.',own:'в своём знаке — сильн.',friend:'в знаке друга — крепк.',neutral:'средн. силы',enemy:'в знаке врага — ослаблен(а)',debil:'в падении — слаб.'})[f[p].dignity]||'средн. силы'; }
+function plIsWeak(p){ const f=NADI_F; if(!(f&&f[p])) return false;
+  if(f[p].dignity==='debil'&&f[p].neechaBhanga) return false; // падение отменено — не считаем слабой
+  return !!(f[p].strength<=2||f[p].combust||f[p].dignity==='debil'); }
+function plIsStrong(p){ const f=NADI_F; return !!(f&&f[p]&&f[p].strength>=4&&!f[p].combust); }
+// Вердикт по паре: 'fav' благоприятно / 'aff' напряжённо / 'mix' смешанно + причина + флаг Кету
+function pairVerdict(a,b){ const f=NADI_F; if(!f||!f[a]||!f[b]) return null;
+  const weak=[a,b].filter(plIsWeak), strongBoth=plIsStrong(a)&&plIsStrong(b);
+  const aff=['Ke','Ra','Sa'].filter(m=>m!==a&&m!==b&&(f.infl(m,a)||f.infl(m,b)));
+  const nodes=aff.filter(m=>m==='Ke'||m==='Ra');
+  const ketu=a!=='Ke'&&b!=='Ke'&&(f.infl('Ke',a)||f.infl('Ke',b));
+  const v=(strongBoth&&aff.length===0)?'fav':((weak.length>0||nodes.length>0)?'aff':'mix');
+  const why=[]; if(weak.length) why.push((weak.length>1?'ослаблены ':'ослаблен(а) ')+weak.map(p=>NADI_PNM[p]).join(', '));
+  if(aff.length) why.push('влияет '+aff.map(p=>NADI_PNM[p]).join(', ')); if(strongBoth&&!aff.length) why.push('обе планеты сильны, без поражения');
+  return {v, why:why.join('; '), ketu}; }
+// Ключ к чтению: сила каждой планеты в карте
+function nadiStrengthKey(){ const f=NADI_F; if(!f) return '';
+  const rows=['Su','Mo','Ma','Me','Ju','Ve','Sa','Ra','Ke'].map(function(p){
+    const infl=['Sa','Ma','Ra','Ke'].filter(m=>m!==p&&f.infl(m,p)).map(m=>NADI_PNM[m]);
+    const moon=p==='Mo'?(f.moonWaxing?' (растущая)':' (убывающая)'):'';
+    return '<tr><td style="font-weight:600">'+NADI_PNM[p]+'</td><td>'+plStrWord(p)+moon+'</td><td class="muted">'+(infl.length?infl.join(', '):'—')+'</td></tr>'; }).join('');
+  return '<div class="nadi-block"><h3>Сила планет в вашей карте — ключ к чтению</h3>'
+   +'<p class="muted" style="margin-top:-4px">Подсказка, какая из трактовок ниже про вас: <b>сильная</b> планета склоняет к благоприятному варианту, <b>ослабленная</b> или под влиянием Кету/Раху/Сатурна — к напряжённому. Спорные места помечаем «В вашей карте: …».</p>'
+   +'<div class="table-scroll"><table class="yantra-table"><thead><tr><th>Планета</th><th>Сила в карте</th><th>Под влиянием Сатурна/Марса/узлов</th></tr></thead><tbody>'+rows+'</tbody></table></div></div>'; }
+function srcBlockHtml(a,b,brief){
   const s=srcCombo(a,b); if(!s) return '';
   const cites=(s.src||[]).map(k=>NADI_SRC_SHORT[k]||k).join(', ');
-  return `<div style="margin-top:6px;padding-top:6px;border-top:1px dashed var(--c-line)"><span style="color:var(--c-orange);font-weight:700">Из нади-источников:</span> ${gz(s.text)}${cites?` <span class="src-cite">[${cites}]</span>`:''}</div>`;
+  let note=''; const vd=pairVerdict(a,b);
+  if(vd){
+    let ket=''; if(/Кету/.test(s.text)) ket=vd.ketu?'Кету здесь задействован — вариант «с Кету» к вам относится':'Кету не задействован — вариант «с Кету» не про вас';
+    if(brief){ if(ket) note=`<div class="muted" style="font-size:13px;margin-top:3px">${ket.charAt(0).toUpperCase()+ket.slice(1)}.</div>`; }
+    else { const tag=vd.v==='fav'?'благоприятный':vd.v==='aff'?'напряжённый':'смешанный';
+      note=`<div class="muted" style="font-size:13px;margin-top:3px">В вашей карте это <b>${tag}</b> вариант${vd.why?' ('+vd.why+')':''}${ket?'; '+ket:''}.</div>`; }
+  }
+  return `<div style="margin-top:6px;padding-top:6px;border-top:1px dashed var(--c-line)"><span style="color:var(--c-orange);font-weight:700">Из нади-источников:</span> ${gz(s.text)}${cites?` <span class="src-cite">[${cites}]</span>`:''}${note}</div>`;
 }
-// Полное тело трактовки пары: NADI_DESC + слой из источников (с учётом пола)
+// Полное тело трактовки пары: NADI_DESC (выбор ветки по силе планет) + слой из источников
 function comboBodyHtml(a,b){
-  const d=getNadiDesc(a,b); let inner='';
+  const d=getNadiDesc(a,b); let inner=''; const vd=pairVerdict(a,b);
   if(d){
     inner+=`<div style="font-weight:700;letter-spacing:.04em;color:var(--tcd);margin-bottom:6px;text-transform:uppercase">${d.name}</div>`;
-    if(d.positive&&d.positive!=='—') inner+=`<div style="margin-bottom:4px"><span style="color:#2E8B57;font-weight:700">Благоприятное:</span> ${gz(d.positive)}</div>`;
-    if(d.negative) inner+=`<div style="margin-bottom:4px"><span style="color:#CC2200;font-weight:700">Сложности:</span> ${gz(d.negative)}</div>`;
+    const hasPos=d.positive&&d.positive!=='—', hasNeg=!!d.negative;
+    if(vd&&vd.v==='fav'&&hasPos){
+      inner+=`<div style="margin-bottom:4px"><span style="color:#2E8B57;font-weight:700">Для вас — благоприятное:</span> ${gz(d.positive)}</div>`;
+    } else if(vd&&vd.v==='aff'&&hasNeg){
+      inner+=`<div style="margin-bottom:4px"><span style="color:#CC2200;font-weight:700">Для вас — сложности:</span> ${gz(d.negative)}</div>`;
+    } else {
+      if(hasPos) inner+=`<div style="margin-bottom:4px"><span style="color:#2E8B57;font-weight:700">Благоприятное:</span> ${gz(d.positive)}</div>`;
+      if(hasNeg) inner+=`<div style="margin-bottom:4px"><span style="color:#CC2200;font-weight:700">Сложности:</span> ${gz(d.negative)}</div>`;
+    }
+    if(vd){ const tag=vd.v==='fav'?'скорее благоприятно':vd.v==='aff'?'скорее напряжённо':'смешанно — ориентируйтесь на оба варианта';
+      inner+=`<div class="muted" style="font-size:13px;margin-bottom:4px">В вашей карте: <b>${tag}</b>${vd.why?' ('+vd.why+')':''}.</div>`; }
     if(d.upaya) inner+=`<div><span style="color:var(--c-red);font-weight:700">Упайи:</span> ${gz(d.upaya)}</div>`;
   }
-  inner+=srcBlockHtml(a,b);
+  inner+=srcBlockHtml(a,b,!!d);
   return inner;
 }
 function sourcesBlock(){
@@ -1317,7 +1355,7 @@ function renderAnalysis(positions, nadiLines, lagnaSign, dateStr, city){
     tableRows+=`<tr>
       <td style="color:${P_COLOR[p]};font-weight:600">${P_GLYPH[p]} ${gl(p,P_NAMES[p])}</td>
       <td>${gl('s'+sign,SIGN_NAMES[sign])} ${dg}°${mn>9?mn:'0'+mn}'</td>
-      <td>${dot}${QUALITY_LABEL[q]||q}</td>
+      <td>${dot}${QUALITY_LABEL[q]||q}${(NADI_F&&NADI_F[p]&&NADI_F[p].neechaBhanga)?' <span style="color:#2E8B57">· Нича-Бханга'+(NADI_F[p].nbRaja?' Раджа-йога':'')+'</span>':''}</td>
       <td style="color:${P_COLOR[lord]}">${q==='own'?'—':gl(lord,P_NAMES[lord])+' ('+gl('s'+lordSign,SIGN_NAMES[lordSign])+')'}</td>
     </tr>`;
   }
@@ -1567,7 +1605,7 @@ function pastLifeBlock(positions, lagSign){
   const keNak=NAKSHATRAS[Math.floor(nd(positions['Ke'].lon)/(360/27))].name;
   const lord5=SIGN_LORDS[(lagSign+4)%12], lord5H=((sgn(lord5)-lagSign+12)%12)+1;
   const occ5=['Su','Mo','Ma','Me','Ju','Ve','Sa','Ra','Ke'].filter(p=>house(p)===5).map(p=>P_NAMES[p]);
-  const whoPhrase=NATIVE_SEX==='m'?'этот мужчина уже проживал':'эта женщина уже проживала';
+  const whoPhrase='этот человек уже проживал';
   return `<div class="nadi-block"><h3>Возможная прошлая жизнь</h3>
     <p><strong>Кету — ${SIGN_NAMES[keS]}, накшатра ${keNak}, ${keH}-й дом.</strong> Прошлая натура: ${KETU_SIGN_PAST[keS]}. Вероятная роль: ${KETU_HOUSE_ROLE[keH-1]} (сфера «${HOUSE_AREA[keH-1]}»). Скорее всего, ${whoPhrase} подобный опыт и приходит сюда зрелой душой.</p>
     <p><strong>Что принесено из прошлого:</strong> зрелое умение в этой области — даётся легко, почти «по памяти», это сильная сторона характера. <strong>Что стоит отпустить:</strong> склонность снова и снова повторять знакомые роли и избегать нового именно здесь — в этом кармический тупик Кету.</p>
@@ -1659,22 +1697,26 @@ const PROFESSIONS={
 function purposeBlock(positions, lagSign){
   const sgn=p=>Math.floor(positions[p].lon/30);
   const house=p=>((sgn(p)-lagSign+12)%12)+1;
-  const lord10=SIGN_LORDS[(lagSign+9)%12], lagLord=SIGN_LORDS[lagSign];
+  const tenth=(lagSign+9)%12;                 // знак 10-го дома
+  const lord10=SIGN_LORDS[tenth];
   const grahas=['Su','Mo','Ma','Me','Ju','Ve','Sa'];
+  const strongOf=p=>{const q=nadiQuality(p,sgn(p));return q==='exalt'||q==='own';};
+  const weakOf=p=>{ if(NADI_F&&NADI_F[p]&&NADI_F[p].dignity==='debil'&&NADI_F[p].neechaBhanga) return false; const q=nadiQuality(p,sgn(p));return q==='debil'||q==='enemy';};
+  // Караки карьеры строго по 10-му дому: занимающие 10-й → его управитель → аспектирующие 10-й
   const in10=grahas.filter(p=>house(p)===10);
-  const strong=grahas.filter(p=>{const q=nadiQuality(p,sgn(p));return q==='exalt'||q==='own';});
-  const key=[...new Set([lord10,...in10,...strong,lagLord].filter(Boolean))];
-  const profs=[...new Set(key.flatMap(p=>PROFESSIONS[p]||[]))].slice(0,12);
-  const drivers=[
-    '10-й дом (карьера) ведёт '+P_NAMES[lord10],
-    in10.length?'в 10-м доме — '+in10.map(p=>P_NAMES[p]).join(', '):null,
-    strong.length?'сильнейшие планеты — '+strong.map(p=>P_NAMES[p]).join(', '):null
-  ].filter(Boolean);
+  const asp10=grahas.filter(p=>!in10.includes(p)&&p!==lord10&&(typeof aspSigns==='function')&&aspSigns(p,sgn(p)).includes(tenth));
+  const rank=[]; in10.forEach(p=>rank.push(p)); if(!rank.includes(lord10)) rank.push(lord10); asp10.forEach(p=>{if(!rank.includes(p))rank.push(p);});
+  const key=rank.slice(0,3);                   // только топ-3 указателя карьеры, а не все сильные планеты
+  const profs=[...new Set(key.flatMap(p=>PROFESSIONS[p]||[]))].slice(0,6);
+  const drivers=[];
+  if(in10.length) drivers.push('в 10-м доме (карьеры) — '+in10.map(p=>P_NAMES[p]+(strongOf(p)?' (сильн.)':weakOf(p)?' (ослаблен)':'')).join(', '));
+  drivers.push('10-м домом управляет '+P_NAMES[lord10]+' — в '+SIGN_NAMES[sgn(lord10)]+', '+house(lord10)+'-й дом'+(strongOf(lord10)?', сильн.':weakOf(lord10)?', ослаблен':''));
+  if(asp10.length) drivers.push('на 10-й дом аспект — '+asp10.map(p=>P_NAMES[p]).join(', '));
   return `<div class="nadi-block"><h3>Предназначение — где ждёт успех</h3>
-    <p>На призвание указывают: ${drivers.join('; ')}; асцендентом управляет ${P_NAMES[lagLord]}.</p>
-    <p><strong>Сферы, профессии и занятия, в которых раскрывается потенциал:</strong></p>
+    <p>Карьеру в вашей карте задают именно: ${drivers.join('; ')}.</p>
+    <p><strong>Сферы, в которых раскрывается потенциал (по этим планетам):</strong></p>
     <ul class="purpose-list">${profs.map(x=>`<li>${x}</li>`).join('')}</ul>
-    <p class="muted">Ориентир по 10-му дому и сильным планетам; конкретный путь уточняется по всей карте и текущей даше.</p>
+    <p class="muted">Расчёт по 10-му дому, его управителю и планетам, связанным с ним (а не по всем сильным планетам). Точный путь уточняется по дробной карте Д-10 и текущей даше.</p>
   </div>`;
 }
 
@@ -1826,7 +1868,8 @@ function positionsTable(positions, chart, lagSign){
     const retro=(p==='Ra'||p==='Ke')?true:(chart.spd&&chart.spd[STD[p]]!=null?chart.spd[STD[p]]<0:false);
     let combust=false; if(ORB[p]){ let dd=Math.abs(lon-sunLon); if(dd>180)dd=360-dd; combust=dd<ORB[p]; }
     const sBase=({exalt:5,own:5,friend:4,neutral:3,enemy:2,debil:1})[q]||3;
-    const sVal=Math.max(1,combust?sBase-1:sBase);
+    let sVal=Math.max(1,combust?sBase-1:sBase);
+    if(typeof NADI_F!=='undefined'&&NADI_F&&NADI_F[p]&&NADI_F[p].neechaBhanga) sVal=NADI_F[p].strength; // Нича-Бханга: падение отменено на 50%
     const sCol=sVal>=4?'#2E8B57':(sVal===3?'#C8960C':'#CC2200');
     const dots='●'.repeat(sVal)+'○'.repeat(5-sVal);
     const st=[];
@@ -1836,7 +1879,7 @@ function positionsTable(positions, chart, lagSign){
       +`<td>${gl('s'+sgn,SIGN_NAMES[sgn])} ${degStr(lon)}</td><td>${gl('h'+h,h+'-й')}</td>`
       +`<td><span title="${nakTip(ni)} Пада ${pada}.">${NAKSHATRAS[ni].name} (${pada})</span></td>`
       +`<td>${NAKSHATRAS[ni].lord}</td>`
-      +`<td><span class="gl" data-gl="dignity" style="color:${QUALITY_COLOR[q]};font-weight:bold" title="${(QUALITY_TIP[q]||'').replace(/"/g,'')}">${QUALITY_LABEL[q]}</span></td>`
+      +`<td><span class="gl" data-gl="dignity" style="color:${QUALITY_COLOR[q]};font-weight:bold" title="${(QUALITY_TIP[q]||'').replace(/"/g,'')}">${QUALITY_LABEL[q]}</span>${(typeof NADI_F!=='undefined'&&NADI_F&&NADI_F[p]&&NADI_F[p].neechaBhanga)?' <span style="color:#2E8B57;font-size:.85em">· Нича-Бханга'+(NADI_F[p].nbRaja?' Раджа-йога':'')+'</span>':''}</td>`
       +`<td><span class="gl" data-gl="strength" style="color:${sCol};letter-spacing:1px;white-space:nowrap" title="Сила ${sVal}/5${combust?' (снижена сожжением)':''}">${dots}</span></td>`
       +`<td>${st.join(' ')||'<span class="muted">—</span>'}</td></tr>`;
   }).join('');
@@ -1873,6 +1916,30 @@ function chartFacts(chart,positions,lagSign){
   f.exchange=(a,b)=>a!==b&&SIGN_LORDS[f[a].sign]===b&&SIGN_LORDS[f[b].sign]===a; // паривартана (обмен домами)
   f.comb=(a,b)=>a!==b&&([1,2,5,7,9,12].includes(f.hf(a,b))||f.exchange(a,b)); // нади-комбинация (Negandhi): соединение/трин(1-5-9)/7-й/соседние(2-12)/обмен
   f.raoComb=(a,b)=>(f[a].sign%4)===(f[b].sign%4); // комбинация Рао: планеты одного направления = одной стихии-тригона (Восток/Юг/Запад/Север)
+  // ── Нича-Бханга (отмена падения), классические правила (Парашара/Пхаладипика) ──
+  // (А) нича-планета в одном знаке с планетой в своём/мулатриконе/экзальтации;
+  // (Б) управитель знака падения — в своём/мулатриконе/экзальтации;
+  // (В) этот управитель — в кендре (1/4/7/10) от Лагны ИЛИ от Луны;
+  // (Г) обмен знаками (паривартана) нича-планеты с её управителем;
+  // (Д) планета, экзальтирующая в знаке падения, — в кендре от Лагны/Луны.
+  // Степень отмены градуирована (в текстах нет фикс. «50%»): 1 условие → нейтрализация (~средняя, 3),
+  // 2 → крепкая (4), 3+ → полная, Нича-Бханга Раджа-йога (5). Сожжение снижает на 1.
+  var EXALT_IN={0:'Su',1:'Mo',3:'Ju',5:'Me',6:'Sa',9:'Ma',11:'Ve'}; // планета, экзальтирующая в знаке (индекс знака)
+  var inKendra=function(pl){ if(!f[pl]) return false; var hL=((f[pl].sign-lagSign+12)%12)+1; var dM=(f[pl].sign-f.Mo.sign+12)%12; return [1,4,7,10].indexOf(hL)>=0||[0,3,6,9].indexOf(dM)>=0; };
+  P.forEach(p=>{
+    if(f[p].dignity!=='debil') return;
+    var sg=f[p].sign, disp=SIGN_LORDS[sg], exL=EXALT_IN[sg], R=[];
+    if(P.some(q=>q!==p&&f[q].sign===sg&&(f[q].dignity==='exalt'||f[q].dignity==='own'))) R.push('в одном знаке с сильной планетой');
+    if(disp&&disp!==p&&f[disp]&&(f[disp].dignity==='exalt'||f[disp].dignity==='own')) R.push('управитель знака ('+disp+') в своём/экзальтации');
+    if(disp&&disp!==p&&inKendra(disp)) R.push('управитель знака ('+disp+') в кендре от Лагны/Луны');
+    if(disp&&disp!==p&&f.exchange(p,disp)) R.push('обмен знаками с управителем ('+disp+')');
+    if(exL&&exL!==p&&inKendra(exL)) R.push('экзальт-управитель знака ('+exL+') в кендре от Лагны/Луны');
+    if(R.length){
+      var n=R.length, restored=n>=3?5:(n===2?4:3);
+      f[p].neechaBhanga=true; f[p].nbCount=n; f[p].nbRaja=n>=3; f[p].nbReason=R.join('; ');
+      f[p].strength=Math.max(1, f[p].combust?restored-1:restored);
+    }
+  });
   return f;
 }
 // Луна по знакам (Naadi Research, Negandhi) — характер/отношение к ресурсам; смягчено. Индекс = знак 0..11.
@@ -2195,8 +2262,8 @@ const NADI_RULES=[
     personal:'В вашей карте <b>Марс с Юпитером</b>: деятельная энергия служит росту и дхарме — сочетание силы и мудрости; хорошо для наставничества, права, инженерии и целеустремлённых дел.',
     upaya:'Юпитеру — четверг; направлять энергию Марса на достойные, дхармичные цели.',
     original:'Овен — начало жизни: душа (Солнце) входит в тело (Марс), возникает джива (Юпитер) — тригон Овен–Лев–Стрелец (дхарма). Марс+Юпитер соединяют силу и дхарму.' },
-  { src:'100 Nadi Sutras, с.66', when:f=>(typeof NATIVE_SEX!=='undefined'&&NATIVE_SEX==='m')?f.conj('Ju','Me'):f.conj('Ve','Me'),
-    personal:'В вашей карте <b>планета-«я» соединена с Меркурием</b> (каракой дружбы): верные, поддерживающие друзья; крепкие дружеские и партнёрские связи.',
+  { src:'100 Nadi Sutras, с.66', when:f=>f.conj('Ju','Me')||f.conj('Ve','Me'),
+    personal:'В вашей карте <b>планета-«я» (Юпитер или Венера) соединена с Меркурием</b> (каракой дружбы): верные, поддерживающие друзья; крепкие дружеские и партнёрские связи.',
     upaya:'Меркурию — среда; ценить и поддерживать дружбу.',
     original:'Меркурий — карака дружбы (и возлюбленного). Мужской гороскоп ведёт Юпитер, женский — Венера: Юпитер+Меркурий (муж.) или Венера+Меркурий (жен.) указывает на истинных друзей.' },
   { src:'100 Nadi Sutras, с.77', when:f=>f.malAspOn('Mo')>=1&&f.malAspOn('Me')>=1,
@@ -2275,8 +2342,8 @@ const NADI_RULES=[
     personal:f=>'<b>Место рождения (по традиции нади):</b> возможно, рядом с домом рождения было — '+NR_BIRTHPLACE.filter(r=>r[0](f)).map(r=>r[1]).join('; ')+'. Ось Раху–Кету указывает направление дороги (Раху — главная улица, Кету — узкая).',
     note:'Это традиционные приметы места — ориентир, а не точная география.',
     original:'Место рождения (Naadi Research): Луна+Венера — водоём; Луна+Раху — море/река; Луна+Кету/Марс — плотина; Кету+Меркурий — храм Вишну (восток); Юпитер+Кету — храм Брахмы; Марс+Кету — храм Богини/Ханумана; Сатурн+Кету — религиозное учреждение.' },
-  { src:'Naadi Research 2 (Negandhi)', when:f=>(typeof NATIVE_SEX!=='undefined'&&NATIVE_SEX==='f')&&NR_FEMALE.some(r=>r[0](f)),
-    personal:f=>'<b>Женский гороскоп (по нади):</b> '+NR_FEMALE.filter(r=>r[0](f)).map(r=>r[1]).join('; ')+'.',
+  { src:'Naadi Research 2 (Negandhi)', when:f=>NR_FEMALE.some(r=>r[0](f)),
+    personal:f=>'<b>Брак и отношения (по нади):</b> '+NR_FEMALE.filter(r=>r[0](f)).map(r=>r[1]).join('; ')+'.',
     note:'Резкие формулировки первоисточника смягчены — это тенденции, а не приговор.',
     upaya:'Венере — пятница (гармония и забота о себе).',
     original:'Женские правила (Naadi Research, Негандхи): Венера+Марс+Кету — ссоры с мужем; Сатурн+Венера — счастливый брак и свой доход; Сатурн+Луна — горечь в браке; Венера+Юпитер+Солнце — страдания из-за гордости/гнева; Венера+Меркурий+Сатурн — страх-комплекс, задержки; Сатурн+Венера+Кету — религиозная жизнь; Венера+Луна+Кету — заграничные поездки/паломничества.' },
@@ -2284,9 +2351,9 @@ const NADI_RULES=[
   { src:'Система Рао', when:f=>!!raoPick(RAO_CAREER,f),
     personal:f=>'<b>Профессия (система Рао):</b> '+raoPick(RAO_CAREER,f).t+'.',
     original:'Система Рао: профессию определяют комбинации Сатурна (карьеры) с планетами одного направления (стихии).' },
-  { src:'Система Рао', when:f=>(typeof NATIVE_SEX!=='undefined'&&NATIVE_SEX!=='f')?!!raoPick(RAO_WIFE,f):!!raoPick(RAO_HUSBAND,f),
-    personal:f=>'<b>Супруг(а) (система Рао):</b> '+((typeof NATIVE_SEX!=='undefined'&&NATIVE_SEX!=='f')?raoPick(RAO_WIFE,f).t:raoPick(RAO_HUSBAND,f).t)+'.',
-    original:'Система Рао: природу супруги описывают комбинации Венеры (жена), супруга — комбинации Марса (муж).' },
+  { src:'Система Рао', when:f=>!!raoPick(RAO_WIFE,f),
+    personal:f=>'<b>Супруг(а) (система Рао):</b> '+raoPick(RAO_WIFE,f).t+'.',
+    original:'Система Рао: природу брачного партнёра описывают комбинации Венеры — естественной караки супруга(и) в карте любого пола.' },
   { src:'Система Рао', when:f=>!!raoPick(RAO_EDUCATION,f),
     personal:f=>'<b>Образование и знания (система Рао):</b> '+raoPick(RAO_EDUCATION,f).t+'.',
     original:'Система Рао: область знаний и образования определяют комбинации Меркурия.' },
@@ -2350,7 +2417,7 @@ const BHRIGU_RULES=[
   { when:f=>f.hf('Ju','Ra')===3, src:'bns', personal:"Натив будет иметь страх перед змеями" },
   { when:f=>f.hf('Ra','Ju')===2, src:'bns', personal:"Натив будет храбрым" },
   { when:f=>f.hf('Ju','Ke')===6&&f.hf('Ju','Sa')===4, src:'bns', personal:"Натив примет санньясу/отречение" },
-  { when:f=>f.Ju.sign===3&&NATIVE_SEX==='f', src:'bns', personal:"В жизни возможны испытания и ситуации, требующие внутренней опоры и самоуважения; важно беречь чувство собственного достоинства и опираться на поддержку близких.", note:"Смягчено; дословный первоисточник — в оригинале.", original:"Нативу (женщине) предстоит много унижений и проблем", upaya:"Юпитеру — четверг (мудрость и достоинство); практики устойчивости и опора на доверенный круг." },
+  { when:f=>f.Ju.sign===3, src:'bns', personal:"В жизни возможны испытания и ситуации, требующие внутренней опоры и самоуважения; важно беречь чувство собственного достоинства и опираться на поддержку близких.", note:"Смягчено; дословный первоисточник — в оригинале.", original:"Нативу предстоит много унижений и проблем", upaya:"Юпитеру — четверг (мудрость и достоинство); практики устойчивости и опора на доверенный круг." },
   { when:f=>f.hf('Ju','Me')===2, src:'bns', personal:"Сильная тяга к чувственным удовольствиям и общению; в близких отношениях важны верность и мера.", note:"Смягчено; дословный первоисточник — в оригинале.", original:"Натив будет иметь сексуальные отношения со многими женщинами", upaya:"Венере — пятница; культивировать глубину, а не количество связей." },
   { when:f=>f.Ju.sign===6&&f.Su.sign===7&&f.conj('Ju','Ma'), src:'bns', personal:"Натив будет иметь доход от родительской собственности" },
   { when:f=>f.conj('Ju','Ra'), src:'bns', personal:"Возможны периоды подавленности или беспокойства ума — важны режим, практики покоя и поддержка близких.", note:"Смягчено; дословный первоисточник — в оригинале.", original:"Натив будет страдать от умственной депрессии", upaya:"Юпитеру — четверг; Раху — заземление и медитация; при необходимости — помощь специалиста." },
@@ -2418,9 +2485,9 @@ const BHRIGU_RULES=[
   { when:f=>f.Ma.sign===1, src:'bns', personal:"У натива будет метка/шрам на лице" },
   { when:f=>f.Ma.sign===2, src:'bns', personal:"Брат натива будет работать в образовательном учреждении или будет писателем" },
   { when:f=>f.Ma.dignity==='debil', src:'bns', personal:"Жизненную силу и энергию полезно бережно укреплять — режим, движение и отдых; помогает внимание к телу.", note:"Смягчено; дословный первоисточник — в оригинале.", original:"У натива будет слабая жизненная сила", upaya:"Марсу — вторник, умеренная физическая нагрузка; достаточный сон и восстановление." },
-  { when:f=>(f.Ma.sign===1||f.Ma.sign===6)&&NATIVE_SEX==='f', src:'bns', personal:"Муж натива будет богатым" },
+  { when:f=>f.Ma.sign===1||f.Ma.sign===6, src:'bns', personal:"Супруг(а) натива будет состоятельным" },
   { when:f=>f.conj('Ma','Mo')&&f.conj('Ma','Ve'), src:'bns', personal:"Сильные страстные импульсы и вспыльчивость — важны культура чувств и самоконтроль.", note:"Смягчено; дословный первоисточник — в оригинале.", original:"У натива будет желание насилия", upaya:"Марсу — спорт для разрядки; практики покоя ума." },
-  { when:f=>f.hf('Ma','Ju')===7&&NATIVE_SEX==='f', src:'bns', personal:"Муж натива будет хорошего характера" },
+  { when:f=>f.hf('Ma','Ju')===7, src:'bns', personal:"Супруг(а) натива будет хорошего характера" },
   { when:f=>f.conj('Mo','Ve'), src:'bns', personal:"Выраженная чувственность и тяга к удовольствиям и романтике — важны мера, осознанность и верность ценностям отношений.", note:"Смягчено; дословный первоисточник — в оригинале.", original:"Натив будет желать наслаждаться многими женщинами; будет пересексуален", upaya:"Венере — пятница; направлять энергию в творчество и тёплую близость с партнёром." },
   { when:f=>f.Mo.dignity==='exalt', src:'bns', personal:"Натив будет совершать зарубежные поездки" },
   { when:f=>f.Mo.sign===11, src:'bns', personal:"Натив будет совершать зарубежные путешествия" },
@@ -2514,11 +2581,9 @@ function prashnaCard(num){
 function prashnaBlock(chart){
   var age=prashnaAge(chart); var num=107-age; if(num<1)num=1; if(num>107)num=107;
   var main=prashnaCard(num); if(!main) return '';
-  var uni=prashnaCard(71)+prashnaCard('71.5');
   return '<div class="nadi-block"><h3>Прашна-нади — предсказание на ваш возраст</h3>'
     +'<p class="muted" style="margin-top:-4px">Бхригу Прашна Нади (R.G. Rao): предсказание выбирается по текущему возрасту (вам около '+age+' лет → предсказание №'+num+'). Это ориентир на нынешний период, не приговор.</p>'
     +'<div class="nadi-list">'+main+'</div>'
-    +'<p class="muted" style="margin-top:8px">Дополнительно (по традиции читается всегда):</p><div class="nadi-list">'+uni+'</div>'
     +'</div>';
 }
 
@@ -2616,6 +2681,7 @@ function renderNadi(chart){
   NATIVE_SEX=(chart.input.sex==='m')?'m':'f';
   const positions=nadiPositions(chart);
   const lagnaSign=Math.floor(positions.La.lon/30);
+  NADI_F=chartFacts(chart,positions,lagnaSign); // факты карты для персонализации трактовок (сила/влияния)
   const nadiLines=buildNadiLines(positions);
   const chartSvg = nadiChartStyle==='north'
     ? renderSvgNorth(positions,lagnaSign,nadiLines)
@@ -2640,6 +2706,7 @@ function renderNadi(chart){
     +extrasBlock(chart,positions,lagnaSign)
     // ── 2. Нади-трактовки ──
     +grp('2. Нади-трактовки')
+    +nadiStrengthKey()
     +renderAnalysis(positions,nadiLines,lagnaSign,dateStr,city)
     +nadiSutrasBlock(chart,positions,lagnaSign)
     +nadiBhriguBlock(chart,positions,lagnaSign)
