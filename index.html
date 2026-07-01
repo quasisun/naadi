@@ -658,6 +658,7 @@ function printAll(){
 const PREVIEW=/[?&]preview=1/.test(location.search);
 const GATE_HASH='9aaf689fbcdfe9f64a071f9cbe28ae44193fa218e72af24456f44bed64583b4d'; // SHA-256 кода доступа (по умолчанию 1008)
 const FULL_URL='https://goroskop1008.ru/uslugi/#goroskop#!/tproduct/769363362-1607964352579'; // прямая карточка товара «Полный гороскоп» (Tilda)
+const EXAMPLE_URL='https://quasisun.github.io/naadi/#%7B%22date%22%3A%221998-08-10%22%2C%22time%22%3A%2210%3A08%22%2C%22tz%22%3A7%2C%22lat%22%3A54.9914%2C%22lon%22%3A73.3715%2C%22sex%22%3A%22f%22%2C%22place%22%3A%22%D0%9E%D0%9C%D0%A1%D0%9A%22%2C%22tab%22%3A%22nadi%22%2C%22style%22%3A%22south%22%7D'; // пример полного отчёта
 function lsGet(k){try{return localStorage.getItem(k);}catch(e){return null;}}
 function lsSet(k,v){try{localStorage.setItem(k,v);}catch(e){}}
 function lsDel(k){try{localStorage.removeItem(k);}catch(e){}}
@@ -709,7 +710,10 @@ async function applyShareData(p){
 function previewCTA(note){
   return '<div class="nadi-block" style="border-left:4px solid var(--c-orange)"><h3>Это бесплатное превью</h3>'
     +'<p>'+note+'</p>'
-    +'<div style="text-align:center;margin-top:12px"><a class="astro-btn" href="'+FULL_URL+'" target="_blank" rel="noopener" style="display:inline-flex">Заказать полный гороскоп</a></div></div>';
+    +'<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:12px">'
+      +'<a class="astro-btn astro-btn--ghost" href="'+EXAMPLE_URL+'" target="_blank" rel="noopener" style="display:inline-flex">Посмотреть пример отчёта</a>'
+      +'<a class="astro-btn" href="'+FULL_URL+'" target="_blank" rel="noopener" style="display:inline-flex;color:#fff!important">Заказать полный гороскоп</a>'
+    +'</div></div>';
 }
 // Расширенное превью вкладки «Нади-карта»: карта + обзор + ключ силы + 2 планеты + транзиты + CTA
 function renderNadiPreview(chart){
