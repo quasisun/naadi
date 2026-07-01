@@ -1628,17 +1628,43 @@ function extrasBlock(chart, positions, lagSign){
   const elemStr=Object.keys(elem).map(k=>elemName[k]+': '+elem[k]).join(' · ');
   const moon=nd(chart.pos.Moon), ni=Math.floor(moon/(360/27)), moonSign=Math.floor(moon/30);
   const varna=['Кшатрий','Вайшья','Шудра','Брахман','Кшатрий','Вайшья','Шудра','Брахман','Кшатрий','Вайшья','Шудра','Брахман'][moonSign];
+  // стихии: доминирующая и отсутствующая + смысл
+  const ELEM_MEAN={F:'воля, энергия, инициатива, страсть',E:'практичность, устойчивость, дело, материальное',A:'ум, общение, идеи, социальные связи',W:'чувства, интуиция, забота, воображение'};
+  const ELEM_LACK={F:'напора, решительности, инициативы',E:'практичности и доведения дел до материального результата',A:'лёгкости в общении и рациональном анализе',W:'эмоциональной чуткости и интуитивной мягкости'};
+  const maxE=Math.max(elem.F,elem.E,elem.A,elem.W);
+  const domE=['F','E','A','W'].filter(k=>elem[k]===maxE), missE=['F','E','A','W'].filter(k=>elem[k]===0);
+  const domTxt='Преобладает '+domE.map(k=>elemName[k]).join(' и ')+' ('+maxE+') — '+domE.map(k=>ELEM_MEAN[k]).join('; ')+'; так вы прежде всего проживаете жизнь.';
+  const missTxt=missE.length?' Нет стихии '+missE.map(k=>elemName[k]).join(', ')+' — может недоставать '+missE.map(k=>ELEM_LACK[k]).join('; ')+'; полезно осознанно это развивать.':' Все четыре стихии представлены — хороший внутренний баланс.';
+  // качества
+  const QUAL_MEAN={chara:'инициативность, любовь к переменам, старт нового',sthira:'устойчивость, упорство, надёжность, доведение до конца',dvi:'гибкость, приспособляемость, разносторонность'};
+  const qName={chara:'подвижные',sthira:'фиксированные',dvi:'двойственные'};
+  const qmax=Math.max(qual.chara,qual.sthira,qual.dvi), domQ=['chara','sthira','dvi'].filter(k=>qual[k]===qmax);
+  const qualTxt='Преобладают '+domQ.map(k=>qName[k]).join(' и ')+' — '+domQ.map(k=>QUAL_MEAN[k]).join('; ')+'.';
+  // сильные/слабые — по общему расчёту (с учётом Нича-Бханги), чтобы не расходиться с ключом силы
   const strong=[],weak=[];
-  for(const p of ['Su','Mo','Ma','Me','Ju','Ve','Sa']){ const q=nadiQuality(p,Math.floor(positions[p].lon/30)); if(q==='exalt'||q==='own') strong.push(P_NAMES[p]); if(q==='debil'||q==='enemy') weak.push(P_NAMES[p]); }
+  for(const p of ['Su','Mo','Ma','Me','Ju','Ve','Sa']){
+    if(typeof plIsStrong==='function'&&plIsStrong(p)) strong.push(P_NAMES[p]);
+    else if(typeof plIsWeak==='function'&&plIsWeak(p)) weak.push(P_NAMES[p]);
+    else { const q=nadiQuality(p,Math.floor(positions[p].lon/30)); if(q==='exalt'||q==='own')strong.push(P_NAMES[p]); else if(q==='debil'||q==='enemy')weak.push(P_NAMES[p]); }
+  }
+  const nbList=['Su','Mo','Ma','Me','Ju','Ve','Sa'].filter(p=>NADI_F&&NADI_F[p]&&NADI_F[p].neechaBhanga).map(p=>P_NAMES[p]);
+  const nbNote=nbList.length?(' Нича-Бханга (отмена падения): '+nbList.join(', ')+' — учтено как не-слабое, см. «Сила планет».'):'';
   const retro=['Me','Ve','Ma','Ju','Sa'].filter(p=>chart.spd[STD[p]]<0).map(p=>P_NAMES[p]);
   const sun=positions['Su'].lon, ORB={Mo:12,Ma:17,Me:14,Ju:11,Ve:10,Sa:15};
   const combust=Object.keys(ORB).filter(p=>{let dd=Math.abs(positions[p].lon-sun);if(dd>180)dd=360-dd;return dd<ORB[p];}).map(p=>P_NAMES[p]);
+  const combNote=combust.length?(' У вас ослаблены сожжением: '+combust.join(', ')+' — этим темам нужно внимание.'):' Сожжённых у вас нет — планеты выражаются свободно, это плюс.';
+  const mut='class="muted" style="margin-top:-6px;line-height:1.6"';
   return `<div class="nadi-block"><h3>Баланс и сводка</h3>
     <p><strong>Стихии:</strong> ${elemStr}.</p>
+    <p ${mut}>Считаются по знакам 7 планет и Лагны (Огонь: Овен/Лев/Стрелец; Земля: Телец/Дева/Козерог; Воздух: Близнецы/Весы/Водолей; Вода: Рак/Скорпион/Рыбы). ${domTxt}${missTxt}</p>
     <p><strong>Качества знаков:</strong> подвижные ${qual.chara} · фиксированные ${qual.sthira} · двойственные ${qual.dvi}.</p>
+    <p ${mut}>${qualTxt}</p>
     <p><strong>Накшатра Луны:</strong> ${NAKSHATRAS[ni].name} — гана ${NAK_GANA[ni]}, йони ${NAK_YONI[ni]}, варна (по знаку Луны) ${varna}.</p>
+    <p ${mut}>Гана — тип темперамента (Дэва — мягкий, благостный; Манушья — уравновешенный, «человеческий»; Ракшаса — сильный, прямой, бывает резким). Йони — животный символ: инстинктивная природа и совместимость в браке (сверяется с партнёром). Варна — духовно-социальная склонность (Брахман — знание/духовность; Кшатрий — власть/защита/лидерство; Вайшья — дело/торговля/обмен; Шудра — служение/ремесло/труд).</p>
     <p><strong>Сильные планеты:</strong> ${strong.length?strong.join(', '):'—'}. <strong>Слабые:</strong> ${weak.length?weak.join(', '):'—'}.</p>
+    <p ${mut}>Сильные планеты — сферы, что даются легче, ваши опоры; слабые — требуют внимания, дисциплины и упай (подробнее — в «Сила планет» и трактовках выше).${nbNote}</p>
     <p><strong>Ретроградные:</strong> ${retro.length?retro.join(', '):'нет'}. <strong>Сожжённые (близко к Солнцу):</strong> ${combust.length?combust.join(', '):'нет'}.</p>
+    <p ${mut}>Ретроградная планета (двигалась вспять при рождении) — её тему вы проживаете внутренне и нестандартно, переосмысляя и «дорабатывая» (это не минус, а особый разворот).${combNote}</p>
   </div>`;
 }
 
