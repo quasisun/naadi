@@ -147,7 +147,6 @@ body.astro-mode .share-row{display:block}
 body:not(.astro-mode):not(.reader-mode):not(.preview) #accessGate{display:block}
 body.preview #formSection{display:block}
 body.preview .print-row,body.preview .share-row{display:none}
-body.preview .tab[data-tab="naksh"],body.preview .tab[data-tab="yantra"]{display:none}
 body.reader-mode .reader-banner{display:block;margin:0 0 16px;padding:12px 16px;border-radius:var(--radius-sm);background:var(--c-cream);border:1px solid var(--c-line);border-left:4px solid var(--c-orange);font-weight:700;color:var(--c-ink)}
 body.reader-mode #engineBadge{display:none}
 .share-box{width:100%;margin-top:8px;font-size:13px;padding:10px 12px;border:2px solid var(--c-line);border-radius:var(--radius-sm)}
@@ -706,34 +705,60 @@ async function applyShareData(p){
   if(p.tab) switchTab(p.tab);
   await computeAll();
 }
-// Урезанный вывод для бесплатного превью: карта + краткий обзор + CTA
+// CTA-блок «это превью» (общий для всех трёх вкладок)
+function previewCTA(note){
+  return '<div class="nadi-block" style="border-left:4px solid var(--c-orange)"><h3>Это бесплатное превью</h3>'
+    +'<p>'+note+'</p>'
+    +'<div style="text-align:center;margin-top:12px"><a class="astro-btn" href="'+FULL_URL+'" target="_blank" rel="noopener" style="display:inline-flex">Заказать полный гороскоп</a></div></div>';
+}
+// Расширенное превью вкладки «Нади-карта»: карта + обзор + ключ силы + 2 планеты + транзиты + CTA
 function renderNadiPreview(chart){
   const positions=nadiPositions(chart);
   const lagSign=Math.floor(positions.La.lon/30);
+  NADI_F=chartFacts(chart,positions,lagSign);
   const svgHtml=renderSvg(positions,buildNadiLines(positions),lagSign);
   const moonNak=NAKSHATRAS[Math.floor(nd(chart.pos.Moon)/(360/27))].name;
-  const strong=['Su','Mo','Ma','Me','Ju','Ve','Sa'].filter(function(p){var q=nadiQuality(p,Math.floor(positions[p].lon/30));return q==='exalt'||q==='own';}).map(function(p){return P_NAMES[p];});
   const v=vimshottari(chart);
+  const house=p=>((Math.floor(positions[p].lon/30)-lagSign+12)%12)+1;
+  const pl=p=>'<p><b>'+P_NAMES[p]+'</b> ('+plStrWord(p)+'): в '+house(p)+'-м доме — привносит '+PLANET_BRINGS[p]+' в сферу «'+HOUSE_THEME_SHORT[house(p)-1]+'».</p>';
+  const transit=transitBlock(chart)||'';
   document.getElementById('out-nadi').innerHTML=
-   '<div class="nadi-chart-wrap">'+svgHtml+'</div>'
+    '<div class="nadi-chart-wrap">'+svgHtml+'</div>'
    +'<div class="nadi-block"><h3>Краткий нади-обзор</h3>'
      +'<p><strong>Лагна:</strong> '+SIGN_NAMES[lagSign]+' · <strong>Луна:</strong> '+SIGN_NAMES[signIdx(chart.pos.Moon)]+', накшатра '+moonNak+'</p>'
-     +'<p><strong>Сильные планеты:</strong> '+(strong.length?strong.join(', '):'—')+'</p>'
      +'<p><strong>Текущая махадаша:</strong> '+DASHA_RU[v.maha.lord]+' (до '+v.toDate(v.maha.endDay)+')</p>'
    +'</div>'
-   +'<div class="nadi-block" style="border-left:4px solid var(--c-orange)"><h3>Это бесплатное превью</h3>'
-     +'<p>В полном персональном отчёте:</p>'
-     +'<ul class="purpose-list">'
-       +'<li>Полный нади-анализ: достоинства, связи, соединения и скопления планет</li>'
-       +'<li>Трактовки сочетаний планет из классических источников</li>'
-       +'<li>Главные йоги и предназначение — профессии, где ждёт успех</li>'
-       +'<li>Периоды жизни (даша): текущие и полная таблица</li>'
-       +'<li>Навамша и дробные карты, планеты по домам</li>'
-       +'<li>Возможная прошлая жизнь, имя по накшатре, навграха-янтра</li>'
-       +'<li>Сохранение в PDF и личная ссылка на ваш гороскоп</li>'
-     +'</ul>'
-     +'<div style="text-align:center;margin-top:14px"><a class="astro-btn" href="'+FULL_URL+'" target="_blank" rel="noopener" style="display:inline-flex">Заказать полный гороскоп</a></div>'
-   +'</div>';
+   + nadiStrengthKey()
+   +'<div class="nadi-block"><h3>Пример трактовки — 2 планеты</h3>'+pl('Su')+pl('Mo')
+     +'<p class="muted">Остальные планеты, их сочетания, йоги и предназначение — в полном отчёте.</p></div>'
+   + transit
+   + previewCTA('В полном отчёте: все планеты и сочетания с трактовками из классических источников, йоги, предназначение, периоды жизни (даша), дробные карты, прошлая жизнь, имя по накшатре и навграха-янтра, PDF и личная ссылка.');
+}
+// Превью вкладки «Имя по накшатре»
+function renderNakshPreview(chart){
+  const r=nakshatraResult(chart);
+  const devan=DEVANAGARI[r.syllable]||'';
+  document.getElementById('out-naksh').innerHTML=
+    '<div class="nadi-block"><h3>Имя по накшатре — превью</h3>'
+     +'<p><strong>Накшатра Луны:</strong> '+r.nakshatra.name+' ('+r.nakshatra.san+'), пада '+(r.padaIndex+1)+'</p>'
+     +'<p><strong>Благоприятный слог имени:</strong> <span style="font-size:1.4em;color:var(--c-orange);font-weight:700">'+r.syllable+'</span>'+(devan?' · '+devan:'')+'</p>'
+     +'<p class="muted">Имя, начинающееся с этого слога, по традиции гармонирует с натальной Луной.</p></div>'
+   + namesSuggestionBlock(r.syllable,'f')
+   + previewCTA('Полный подбор имён по всем падам, значения и рекомендации — в полном отчёте.');
+}
+// Превью вкладки «Навграха-янтра»
+function renderYantraPreview(chart){
+  const planets=yantraPlanets(chart); computedYantra=planets;
+  document.getElementById('out-yantra').innerHTML=
+    '<div class="yantra-wrap"><canvas id="yantraCanvas"></canvas>'
+   +'<div class="alpha-row"><span>Насыщенность</span><input type="range" id="alphaSlider" min="0.15" max="0.85" step="0.05" value="0.5" oninput="document.getElementById(\'alphaVal\').textContent=parseFloat(this.value).toFixed(2);drawYantraCanvas(computedYantra)"><span id="alphaVal">0.50</span></div>'
+   +'<a id="downloadBtn" class="yantra-download" href="#" download>Скачать PNG</a>'
+   +'<div class="canvas-legend" id="canvasLegend"></div></div>'
+   +'<div class="nadi-block"><h3>Навграха-янтра — превью</h3>'
+     +'<p>Персональная янтра девяти планет, построенная по силе планет вашей карты. Цвет каждой ячейки — достоинство планеты.</p>'
+     +'<p class="muted">Полная расшифровка цветов, что это значит лично для вас и как обращаться с янтрой — в полном отчёте.</p></div>'
+   + previewCTA('Полная навграха-янтра с расшифровкой, значением и инструкцией — в полном отчёте.');
+  drawYantraCanvas(planets);
 }
 async function setupAccess(){
   if(PREVIEW){ document.body.classList.add('preview'); return; }
@@ -759,7 +784,12 @@ function switchTab(name){
 }
 function renderActiveTab(){
   if(!CHART) return;
-  if(PREVIEW){ renderNadiPreview(CHART); return; }   // бесплатное превью — только урезанный обзор
+  if(PREVIEW){ // бесплатное превью — тизер по активной вкладке (все три сервиса)
+    if(activeTab==='naksh')       renderNakshPreview(CHART);
+    else if(activeTab==='yantra') renderYantraPreview(CHART);
+    else                          renderNadiPreview(CHART);
+    return;
+  }
   if(activeTab==='nadi')   renderNadi(CHART);
   if(activeTab==='naksh')  renderNaksh(CHART);
   if(activeTab==='yantra') renderYantra(CHART);
