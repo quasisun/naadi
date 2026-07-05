@@ -656,7 +656,9 @@ function printAll(){
 //  #<JSON>     → готовый результат по ссылке (режим чтения), калькулятор скрыт
 //  иначе       → расчёт за кодом (SHA-256), разблокировка в localStorage
 const PREVIEW=/[?&]preview=1/.test(location.search);
-const GATE_HASH='9aaf689fbcdfe9f64a071f9cbe28ae44193fa218e72af24456f44bed64583b4d'; // SHA-256 кода доступа (по умолчанию 1008)
+const GATE_HASH='9aaf689fbcdfe9f64a071f9cbe28ae44193fa218e72af24456f44bed64583b4d'; // SHA-256 кода доступа 1008 (бессрочно)
+const TEMP_HASH='310ced37200b1a0dae25edb263fe52c491f6e467268acab0ffec06666e2ed959'; // SHA-256 временного кода 1235
+const TEMP_EXPIRY=Date.parse('2027-10-06T00:00:00+03:00'); // временный код 1235 действует по 05.10.2027 включительно (15 мес от 05.07.2026)
 const FULL_URL='https://goroskop1008.ru/uslugi/#goroskop#!/tproduct/769363362-1607964352579'; // прямая карточка товара «Полный гороскоп» (Tilda)
 const EXAMPLE_URL='https://quasisun.github.io/naadi/#%7B%22date%22%3A%221998-08-10%22%2C%22time%22%3A%2210%3A08%22%2C%22tz%22%3A7%2C%22lat%22%3A54.9914%2C%22lon%22%3A73.3715%2C%22sex%22%3A%22f%22%2C%22place%22%3A%22%D0%9E%D0%9C%D0%A1%D0%9A%22%2C%22tab%22%3A%22nadi%22%2C%22style%22%3A%22south%22%7D'; // пример полного отчёта
 function lsGet(k){try{return localStorage.getItem(k);}catch(e){return null;}}
@@ -665,11 +667,23 @@ function lsDel(k){try{localStorage.removeItem(k);}catch(e){}}
 function pad2(n){return String(n).padStart(2,'0');}
 function sha256hex(s){ return crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)).then(function(b){ return [].map.call(new Uint8Array(b),function(x){return x.toString(16).padStart(2,'0');}).join(''); }); }
 function unlockApp(){ document.body.classList.add('astro-mode'); }
-function lockApp(){ lsDel('jyotish_unlocked'); document.body.classList.remove('astro-mode'); const a=document.getElementById('accessCode'); if(a) a.value=''; window.scrollTo(0,0); }
+function lockApp(){ lsDel('jyotish_unlocked'); lsDel('jyotish_unlocked_until'); document.body.classList.remove('astro-mode'); const a=document.getElementById('accessCode'); if(a) a.value=''; window.scrollTo(0,0); }
+// Разблокирован ли режим астролога: 1008 — бессрочно; временный код — пока не прошла дата-отсечка.
+function isUnlocked(){
+  if(lsGet('jyotish_unlocked')==='1') return true;
+  var u=parseInt(lsGet('jyotish_unlocked_until')||'0',10);
+  if(u && Date.now()<u) return true;
+  if(u) lsDel('jyotish_unlocked_until'); // срок истёк — забываем
+  return false;
+}
 function checkCode(){
   const m=document.getElementById('accessMsg');
   sha256hex((document.getElementById('accessCode').value||'').trim()).then(function(h){
-    if(h===GATE_HASH){ lsSet('jyotish_unlocked','1'); unlockApp(); }
+    if(h===GATE_HASH){ lsSet('jyotish_unlocked','1'); unlockApp(); }                       // 1008 — бессрочно
+    else if(h===TEMP_HASH){                                                                  // временный код 1235
+      if(Date.now()<TEMP_EXPIRY){ lsSet('jyotish_unlocked_until',String(TEMP_EXPIRY)); unlockApp(); }
+      else { m.className='geo-status'; m.textContent='Срок действия этого кода истёк.'; }
+    }
     else { m.className='geo-status'; m.textContent='Неверный код доступа.'; }
   });
 }
@@ -774,7 +788,7 @@ async function setupAccess(){
     await applyShareData(p);
     return;
   }
-  if(lsGet('jyotish_unlocked')==='1'){ unlockApp(); return; }
+  if(isUnlocked()){ unlockApp(); return; }
   // иначе — шлюз доступа (показывается через CSS по умолчанию)
 }
 
